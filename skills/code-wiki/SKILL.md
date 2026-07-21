@@ -74,7 +74,7 @@ timestamp: <ISO 8601 today>
 - External: <package names from imports>
 ```
 
-For each domain, write `.wiki/<domain>/_domain.md`:
+For each domain, write `.wiki/<domain>/index.md` (domain navigation map, reuses OKF §6 reserved name):
 
 ```markdown
 ---

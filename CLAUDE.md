@@ -45,7 +45,6 @@ fixture 项目：`~/code/ragnarok`（Python 量化交易系统，80 .py 文件�
 
 ```bash
 source ~/.zshrc 2>/dev/null; cd ~/code/ragnarok && \
-  rm -rf .wiki && \
   cc --plugin-dir ~/code/code-wiki -p '/code-wiki init' < /dev/null && \
   node ~/code/code-wiki/scripts/validate-okf.js .wiki && \
   grep -q '## 🤖 Code Wiki Retrieval Protocol' CLAUDE.md
