@@ -1,0 +1,9 @@
+{
+  "name": "code-wiki",
+  "version": "0.1.0",
+  "description": "Generate and maintain OKF-compliant code navigation wiki for any project.",
+  "author": {
+    "name": "chace.ye"
+  },
+  "hooks": "./hooks/claude-codex-hooks.json"
+}
