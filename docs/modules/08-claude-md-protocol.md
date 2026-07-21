@@ -1,6 +1,6 @@
 # 08 - CLAUDE.md 自动注入
 
-> Status: **TODO**
+> Status: **DONE**
 > 依赖: 02
 
 ## 目标

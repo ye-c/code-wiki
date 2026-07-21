@@ -1,6 +1,6 @@
 # 02 - Skill: init 操作
 
-> Status: **TODO**
+> Status: **DONE**
 > 依赖: 01
 
 ## 目标

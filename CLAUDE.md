@@ -1,6 +1,6 @@
 # code-wiki 开发说明
 
-你在 code-wiki 仓库工作：/Users/chace.ye/code/code-wiki
+你在 code-wiki 仓库工作：~/code/code-wiki
 
 code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码导航 wiki。
 
@@ -24,6 +24,8 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 ## 已完成
 
 - Module 01 (plugin 骨架): DONE — .claude-plugin/plugin.json, hooks/, skills/code-wiki/SKILL.md (占位), commands/code-wiki.toml, README.md, .gitignore
+- Module 02 (skill init): DONE — SKILL.md init 六阶段（DISCOVER→PROPOSE→AUTHOR→INDEX→VALIDATE→Finalize），PROPOSE 不暂停
+- Module 08 (CLAUDE.md 注入): DONE — 三分支检测（无/有/已有协议段），5 条规则，`@.wiki/index.md`
 - Module 09 (OKF 校验): DONE — scripts/validate-okf.js (手写 YAML 解析器 + 8 项检查 + 自检 fixture)
 - 文档补丁已应用: B1 (PROPOSE 去强制暂停), B2 (JSON-flow YAML 子集), B3 (ingest 措辞), D2 (drift 文件合并), 06/07 hook 约定
 
@@ -31,8 +33,7 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 
 - 零依赖（手写解析器，不引入 js-yaml）
 - frontmatter JSON-flow YAML 子集（标量/列表/简单 map，不支持多行字符串/anchors/tags）
-- PROPOSE 阶段输出草案后停止，靠 CC 对话轮次等确认（无状态文件）
-- 非交互模式（cc -p 无头）下：检测到无 TTY 直接用草案跑 AUTHOR，不暂停
+- PROPOSE 阶段输出草案后立即继续 AUTHOR，不暂停（用户事后调整域划分）
 - init 默认 .wiki/.gitignore *（本地优先，团队共享用户自己删 .gitignore）
 - CLAUDE.md 注入三分支：无 CLAUDE.md / 有无协议段 / 已有协议段
 - 协议段 heading 必须是 `## 🤖 Code Wiki Retrieval Protocol`（带 emoji）
@@ -40,10 +41,15 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 
 ## 验证流程
 
-1. cd 到 fixture 项目 /Users/chace.ye/code/minilog（Python 小项目，pyproject.toml + demo.py + app/）
-2. 用 `cc --plugin-dir /Users/chace.ye/code/code-wiki` 加载 code-wiki，`-p` 无头模式跑 `/code-wiki init`
-3. `node /Users/chace.ye/code/code-wiki/scripts/validate-okf.js .wiki` → 0 errors 退出 0
-4. `grep -q '## 🤖 Code Wiki Retrieval Protocol' CLAUDE.md` 命中
+fixture 项目：`~/code/ragnarok`（Python 量化交易系统，80 .py 文件，4 域候选：app/rag/bin/serv，已有 CLAUDE.md — 测"已有协议段"注入分支）
+
+```bash
+source ~/.zshrc 2>/dev/null; cd ~/code/ragnarok && \
+  rm -rf .wiki && \
+  cc --plugin-dir ~/code/code-wiki -p '/code-wiki init' < /dev/null && \
+  node ~/code/code-wiki/scripts/validate-okf.js .wiki && \
+  grep -q '## 🤖 Code Wiki Retrieval Protocol' CLAUDE.md
+```
 
 ## 排查路径
 
@@ -51,6 +57,7 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 - validate 报错 → frontmatter 不符合 JSON-flow YAML 子集
 - CLAUDE.md 没注入 → 三分支检测漏了
 - grep 不命中 → heading 文本不对（检查 emoji）
+- 域划分过粗/过细 → DISCOVER 启发式阈值需调（目录文件数 / 约定名优先级）
 
 ## 开发原则
 
