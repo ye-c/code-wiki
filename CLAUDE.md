@@ -41,10 +41,10 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 
 ## 验证流程
 
-fixture 项目：`~/code/ragnarok`（Python 量化交易系统，80 .py 文件，4 域候选：app/rag/bin/serv，已有 CLAUDE.md — 测"已有协议段"注入分支）
+fixture 项目：`~/code/fasttts`（Python TTS 服务，18 .py 文件，3 域候选：tts/utils/tests，无 CLAUDE.md — 测"无 CLAUDE.md"注入分支）
 
 ```bash
-source ~/.zshrc 2>/dev/null; cd ~/code/ragnarok && \
+source ~/.zshrc 2>/dev/null; cd ~/code/fasttts && \
   cc --plugin-dir ~/code/code-wiki -p '/code-wiki init' < /dev/null && \
   node ~/code/code-wiki/scripts/validate-okf.js .wiki && \
   grep -q '## 🤖 Code Wiki Retrieval Protocol' CLAUDE.md
