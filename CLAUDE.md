@@ -11,7 +11,7 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 - docs/architecture.md — 三层架构 + 四操作 + 数据流
 - docs/decisions.md — P1-P9 ADR
 - docs/modules/01-plugin-skeleton.md — DONE（骨架已就位）
-- docs/modules/02-skill-init.md — init 操作
+- docs/modules/02-skill-init.md — DONE（init 六阶段已就位）
 - docs/modules/03-skill-update.md — update 操作
 - docs/modules/04-skill-lint.md — lint 操作
 - docs/modules/05-skill-ingest.md — ingest 操作
@@ -44,10 +44,18 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 fixture 项目：`~/code/fasttts`（Python TTS 服务，18 .py 文件，3 域候选：tts/utils/tests，无 CLAUDE.md — 测"无 CLAUDE.md"注入分支）
 
 ```bash
-source ~/.zshrc 2>/dev/null; cd ~/code/fasttts && \
-  cc --plugin-dir ~/code/code-wiki -p '/code-wiki init' < /dev/null && \
-  node ~/code/code-wiki/scripts/validate-okf.js .wiki && \
+source $HOME/.zshrc 2>/dev/null; cd $HOME/code/fasttts && \
+  cc --plugin-dir $HOME/code/code-wiki -p '/code-wiki init' < /dev/null && \
+  node $HOME/code/code-wiki/scripts/validate-okf.js .wiki && \
   grep -q '## 🤖 Code Wiki Retrieval Protocol' CLAUDE.md
+```
+
+```bash
+source $HOME/.zshrc 2>/dev/null; cd $HOME/code/fasttts && \
+  echo "# drift test" > drift_probe.py && \
+  cc --plugin-dir $HOME/code/code-wiki -p '/code-wiki update' < /dev/null && \
+  node $HOME/code/code-wiki/scripts/validate-okf.js .wiki && \
+  grep -q "drift_probe" .wiki/log.md
 ```
 
 ## 排查路径
