@@ -10,7 +10,7 @@
 ## 流程（5 阶段）
 
 ```
-DISCOVER  → PROPOSE → [用户确认] → AUTHOR → INDEX → VALIDATE → [注入 CLAUDE.md] → [初始化 log.md] → [设置 .gitignore]
+DISCOVER  → PROPOSE → AUTHOR → INDEX → VALIDATE → [注入 CLAUDE.md] → [初始化 log.md] → [设置 .gitignore]
 ```
 
 ### 阶段 1: DISCOVER — 域识别
@@ -35,11 +35,11 @@ DISCOVER  → PROPOSE → [用户确认] → AUTHOR → INDEX → VALIDATE → [
 
 **输出**：候选域列表 + 每个域的证据 + 每个域下的 concept 候选
 
-### 阶段 2: PROPOSE — 草案 + 暂停
+### 阶段 2: PROPOSE — 草案 + 立即继续
 
 **输出格式**（草案，不写文件）：
 ```
-## 候选域划分（草案，未写文件）
+## 候选域划分
 
 ### Domain: core
 Evidence:
@@ -53,10 +53,10 @@ Proposed concepts:
 ### Domain: services
 ...
 
-确认这样划分？回复"确认"或"调整：合并 X/Y，把 Z 独立成域"。
+继续生成 wiki...
 ```
 
-**关键**：输出草案后停止，不进入 AUTHOR。靠 CC 自然对话轮次等用户回复，不引入状态文件或 flag。用户确认后继续 AUTHOR；调整则重跑 PROPOSE。
+**关键**：输出草案后**立即继续 Phase 3 AUTHOR**，不暂停、不等用户确认。用户事后想调整域划分，可直接编辑 `.wiki/` 或重跑 init。
 
 ### 阶段 3: AUTHOR — 生成 concept 文件
 
@@ -140,7 +140,7 @@ sync_commit: <git HEAD>
 
 ## 关键决策
 
-- **PROPOSE 暂停**（P3）— 输出草案后停止，靠 CC 对话轮次等确认，不引入状态机制
+- **PROPOSE 不暂停**（B1 修订）— 输出草案后立即继续 AUTHOR，用户事后调整
 - **薄 body**（P2）— 不生成 Architecture/Gotchas
 - **`.wiki/` + `.gitignore *`**（P4）— 默认本地用
 - **init 默认 4 type**（P1）— Domain/Concept/Index/Convention
@@ -157,7 +157,7 @@ sync_commit: <git HEAD>
 
 - [ ] 在 claude-bro 跑 `/code-wiki init`，生成 `.wiki/`
 - [ ] 生成的文件全部 OKF 合规（跑模块 09 校验）
-- [ ] PROPOSE 阶段输出草案后确实停止，不进入 AUTHOR
+- [ ] PROPOSE 阶段输出草案后立即继续 AUTHOR
 - [ ] CLAUDE.md 被正确注入协议段
 - [ ] `.wiki/log.md` 有 init 记录
 - [ ] `.wiki/.gitignore` 内容是 `*`

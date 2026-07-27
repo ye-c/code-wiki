@@ -25,15 +25,15 @@
 
 | # | 模块 | 文档 | 状态 | 依赖 |
 |---|------|------|------|------|
-| 01 | plugin 骨架 | [01-plugin-skeleton.md](modules/01-plugin-skeleton.md) | TODO | — |
-| 02 | skill: init | [02-skill-init.md](modules/02-skill-init.md) | TODO | 01 |
-| 03 | skill: update | [03-skill-update.md](modules/03-skill-update.md) | TODO | 02, 06, 07 |
+| 01 | plugin 骨架 | [01-plugin-skeleton.md](modules/01-plugin-skeleton.md) | DONE | — |
+| 02 | skill: init | [02-skill-init.md](modules/02-skill-init.md) | DONE | 01 |
+| 03 | skill: update | [03-skill-update.md](modules/03-skill-update.md) | DONE | 02 |
 | 04 | skill: lint | [04-skill-lint.md](modules/04-skill-lint.md) | TODO | 02 |
 | 05 | skill: ingest | [05-skill-ingest.md](modules/05-skill-ingest.md) | TODO | 02 |
 | 06 | hook: SessionStart | [06-hook-session-start.md](modules/06-hook-session-start.md) | TODO | 01 |
 | 07 | hook: PostToolUse | [07-hook-post-tool-use.md](modules/07-hook-post-tool-use.md) | TODO | 01 |
-| 08 | CLAUDE.md 注入 | [08-claude-md-protocol.md](modules/08-claude-md-protocol.md) | TODO | 02 |
-| 09 | OKF 合规校验 | [09-okf-conformance.md](modules/09-okf-conformance.md) | TODO | 02 |
+| 08 | CLAUDE.md 注入 | [08-claude-md-protocol.md](modules/08-claude-md-protocol.md) | DONE | 02 |
+| 09 | OKF 合规校验 | [09-okf-conformance.md](modules/09-okf-conformance.md) | DONE | 02 |
 | 10 | dogfood | [10-dogfood.md](modules/10-dogfood.md) | TODO | 全部 |
 
 ## MVP 范围

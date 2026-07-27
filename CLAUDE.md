@@ -12,12 +12,12 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 - docs/decisions.md — P1-P9 ADR
 - docs/modules/01-plugin-skeleton.md — DONE（骨架已就位）
 - docs/modules/02-skill-init.md — DONE（init 六阶段已就位）
-- docs/modules/03-skill-update.md — update 操作
+- docs/modules/03-skill-update.md — DONE（update 三阶段已就位）
 - docs/modules/04-skill-lint.md — lint 操作
 - docs/modules/05-skill-ingest.md — ingest 操作
 - docs/modules/06-hook-session-start.md — SessionStart hook
 - docs/modules/07-hook-post-tool-use.md — PostToolUse hook
-- docs/modules/08-claude-md-protocol.md — CLAUDE.md 注入
+- docs/modules/08-claude-md-protocol.md — DONE（CLAUDE.md 注入）
 - docs/modules/09-okf-conformance.md — DONE（validate-okf.js 已就位）
 - docs/modules/10-dogfood.md — dogfood 验证
 
@@ -25,6 +25,7 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 
 - Module 01 (plugin 骨架): DONE — .claude-plugin/plugin.json, hooks/, skills/code-wiki/SKILL.md (占位), commands/code-wiki.toml, README.md, .gitignore
 - Module 02 (skill init): DONE — SKILL.md init 六阶段（DISCOVER→PROPOSE→AUTHOR→INDEX→VALIDATE→Finalize），PROPOSE 不暂停
+- Module 03 (skill update): DONE — SKILL.md update 三阶段（DETECT→REGENERATE→VALIDATE），不依赖 hooks，git diff 驱动
 - Module 08 (CLAUDE.md 注入): DONE — 三分支检测（无/有/已有协议段），5 条规则，`@.wiki/index.md`
 - Module 09 (OKF 校验): DONE — scripts/validate-okf.js (手写 YAML 解析器 + 8 项检查 + 自检 fixture)
 - 文档补丁已应用: B1 (PROPOSE 去强制暂停), B2 (JSON-flow YAML 子集), B3 (ingest 措辞), D2 (drift 文件合并), 06/07 hook 约定

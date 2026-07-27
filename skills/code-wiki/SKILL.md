@@ -224,8 +224,7 @@ Incrementally update wiki after code changes. Three phases: DETECT → REGENERAT
 3. Build changed file list:
    - **HEAD == sync_commit**: run `git status --porcelain`. If output is empty → print `wiki 已是最新，无需更新` and **stop**. Otherwise extract file paths (strip status prefix like `?? `, `M  `, etc.).
    - **HEAD != sync_commit**: run `git diff <sync_commit>..HEAD --name-only` for committed changes. Also run `git status --porcelain` for uncommitted changes. Merge and deduplicate both lists.
-4. If `.wiki/.drift.json` exists, read its `concepts` array and add to affected set.
-5. Filter out non-source paths: anything under `.wiki/`, `.git/`, `node_modules/`, `__pycache__/`, `.venv/`, `.tox/`, `dist/`, `build/`.
+4. Filter out non-source paths: anything under `.wiki/`, `.git/`, `node_modules/`, `__pycache__/`, `.venv/`, `.tox/`, `dist/`, `build/`.
 
 ### Phase 2: REGENERATE
 
@@ -252,8 +251,7 @@ Incrementally update wiki after code changes. Three phases: DETECT → REGENERAT
    * **update**: Synced N concepts (<names>). Unmapped: M files (<names including filenames>). sync_commit=`<hash>`.
    ```
    **Important**: include actual changed file names in the log entry for traceability. Ensure the file ends with a trailing newline.
-4. If `.wiki/.drift.json` existed, delete it.
-5. Output:
+4. Output:
    ```
    update 完成
    - 检测 N 个变更文件
