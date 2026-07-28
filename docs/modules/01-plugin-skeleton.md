@@ -35,7 +35,7 @@
 ```json
 {
   "name": "code-wiki",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Generate and maintain OKF-compliant code navigation wiki for any project.",
   "author": {
     "name": "chace.ye"
