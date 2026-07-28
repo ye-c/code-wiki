@@ -4,6 +4,5 @@
   "description": "Generate and maintain OKF-compliant code navigation wiki for any project.",
   "author": {
     "name": "yec"
-  },
-  "hooks": "./hooks/claude-codex-hooks.json"
+  }
 }

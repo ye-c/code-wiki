@@ -1,0 +1,11 @@
+{
+  "name": "yec-plugins",
+  "owner": { "name": "ye-c" },
+  "plugins": [
+    {
+      "name": "code-wiki",
+      "source": { "source": "github", "repo": "ye-c/code-wiki" },
+      "description": "Generate and maintain OKF-compliant code navigation wiki"
+    }
+  ]
+}
