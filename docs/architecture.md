@@ -77,19 +77,17 @@ AI 编码助手在大型项目里频繁扫描代码、浪费上下文、消耗 t
 code-wiki/                        # 本 plugin 仓库
 ├── .claude-plugin/
 │   └── plugin.json               # plugin 清单
-├── hooks/                        # CC hooks（JS 脚本）
-│   ├── claude-codex-hooks.json   # hook 注册
-│   ├── wiki-session-start.js     # SessionStart: drift 检测
-│   └── wiki-post-tool-use.js     # PostToolUse: drift 标记
 ├── skills/
 │   └── code-wiki/
 │       └── SKILL.md              # skill 指令（init/update/lint/ingest）
 ├── commands/
 │   └── code-wiki.toml            # /code-wiki 命令定义
-├── scripts/                      # 辅助脚本（按需添加）
+├── scripts/                      # 辅助脚本（validate-okf.js）
 ├── docs/                         # 开发文档
 └── README.md
 ```
+
+**无 hooks 目录**（P10 决策，砍 06/07）。
 
 ## .wiki/ 目标结构（用户项目里生成的）
 
@@ -136,26 +134,26 @@ VALIDATE  — OKF 合规校验 + 断链扫描
 ### update 流程
 
 ```
-SessionStart hook — 检测 sync_commit vs HEAD，drift 则状态栏提示
-  ↓
-PostToolUse hook — 用户改代码时静默标记 drift concept
-  ↓
 用户: /code-wiki update
   ↓
-git diff sync_commit..HEAD --name-only → 变更代码文件
+Phase 1 DETECT: git diff sync_commit..HEAD --name-only → 变更代码文件
   ↓
-找 owner concept（frontmatter resource 反查）
+（自然报 drift: "wiki N commits behind"）
   ↓
-更新 owner concept 的 frontmatter + Key Files
+Phase 2 REGENERATE: 找 owner concept（frontmatter resource 反查）
   ↓
-拓扑排序所有 drift concept（处理交叉引用）
+更新 owner concept 的 frontmatter + Key Files + Dependencies
   ↓
-级联修正: 同步结构化段，freeform 段加 review 标记，清 drift
+stale concept 检测（resource 路径不存在 → 记 log）
+  ↓
+Phase 3 VALIDATE: 跑 validate-okf.js
   ↓
 刷 index.md sync_commit
   ↓
 追加 log.md
 ```
+
+**无 hook**（P10 决策）。drift 检测融进 update Phase 1，零 LLM 主动性依赖。
 
 ### lint 流程
 
@@ -190,16 +188,15 @@ git diff sync_commit..HEAD --name-only → 变更代码文件
 ## 标记生命周期（drift → review → 清除）
 
 ```
-git commit 改了文件 A
-  → PostToolUse hook 给 owner concept 加 drift 标记
-  → update 级联: 引用 A 的页面 B 同步结构化段，freeform 段加 review 标记，清 drift
-  → lint 扫 review 标记
-    → 上游稳定（最近 N commit 没动）→ 提示用户复查
-    → 上游还在动 → 保留，报告
+用户改代码（git commit）
+  → update Phase 1 git diff 自然发现 drift
+  → update Phase 2 重生成结构化段
+  → freeform 段 review 标记由 Boy Scout Rule 触发（LLM 改代码时顺手加，bonus）
+  → lint 扫 review 标记（保留检查，但不再依赖 hook）
   → 用户复查完，手动删 review 标记
 ```
 
-**标记不积压**：drift 在 update 时被消，review 在上游稳定后被 lint 推动用户处理。
+**drift 不积压**：用户主动跑 update 时被消。review 标记是 bonus，不是 load-bearing。
 
 ## 和现有工具的协同
 

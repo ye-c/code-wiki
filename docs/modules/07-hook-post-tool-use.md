@@ -1,7 +1,25 @@
 # 07 - Hook: PostToolUse
 
-> Status: **TODO**
+> Status: **WONTFIX**
 > 依赖: 01
+
+## 废弃声明
+
+**此模块已废弃**（P10 决策，见 `docs/decisions.md`）。
+
+**废弃原因**：
+1. **性能拖累** — 每次 Edit/Write 触发 node 进程扫全量 wiki，纯浪费
+2. **架构冗余 (YAGNI)** — update 已完全改为 git diff 驱动，`.wiki/.drift.json` 是冗余中间状态
+3. **过度设计** — 后台驻留 hook 投入产出比低
+
+**替代方案**：
+- drift 检测：update Phase 1 git diff
+- drift 标记：无（update 时自然发现）
+- review 标记：Boy Scout Rule（CLAUDE.md 协议段第 5 条，LLM 顺手加）
+
+**`.wiki/.drift.json` 机制废弃**。
+
+**保留设计底稿**（下方），记录废弃原因，不删除。
 
 ## 目标
 

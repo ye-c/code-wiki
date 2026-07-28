@@ -1,7 +1,20 @@
 # 06 - Hook: SessionStart
 
-> Status: **TODO**
+> Status: **WONTFIX**
 > 依赖: 01
+
+## 废弃声明
+
+**此模块已废弃**（P10 决策，见 `docs/decisions.md`）。
+
+**废弃原因**：
+1. **性能拖累** — 每次 CC 启动跑 git 命令，大项目慢
+2. **YAGNI** — drift 检测已融进 update Phase 1（git diff 自然发现）
+3. **过度设计** — 状态栏 "N behind" 不是 actionable，用户想同步自然跑 update
+
+**替代方案**：用户主动跑 `/code-wiki update`，Phase 1 会报 drift 程度。
+
+**保留设计底稿**（下方），记录废弃原因，不删除。
 
 ## 目标
 

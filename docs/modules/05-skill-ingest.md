@@ -1,6 +1,6 @@
 # 05 - Skill: ingest 操作
 
-> Status: **TODO**
+> Status: **DONE**
 > 依赖: 02
 
 ## 目标
@@ -42,17 +42,17 @@ SKILL.md 指示 CC 查看本会话上下文中的最近 assistant 回复（skill
 
 ### 2. 判断内容类型
 
-启发式判断该归档成什么 type：
+按明确规则匹配（非启发式），低级模型也能可靠执行：
 
-| 内容特征 | type |
+| 内容信号 | type |
 |----------|------|
-| 跨层执行路径描述（"请求从 A 流到 B 再到 C"） | **Flow** |
-| 决策记录（"我们决定用 X 而不用 Y，因为 Z"） | **ADR** |
-| 状态/UI/env var 的跨层映射（"这个 flag 在 A/B/C 被读"） | **StateMap** |
-| edge case 处理（"Gemini 的 thought signature 要这样处理"） | **Convention** 段 |
-| 其他 | 不归档，提示"这个不适合归档" |
+| 包含 "X 流到 Y" / "请求路径" / "执行路径" / "请求从 A 到 B" | **Flow** |
+| 包含 "决定用 X" / "选 X 不选 Y" / "因为 Z" / "权衡" | **ADR** |
+| 包含 "字段 X 在 A 被" / "env var" / "状态传播" / "配置在" | **StateMap** |
+| edge case 处理 / "要注意" / "特殊情况" | 追加到已有 Convention 页的 `# Edge Cases` 段 |
+| 以上都不匹配 | 不归档，提示"内容不适合归档" |
 
-**判断不准时**：列出候选 type，让用户选。
+**判断不准或多重匹配时**：列出候选 type，让用户选。用户也可显式 `/code-wiki ingest Flow <name>` 强制指定。
 
 ### 3. 生成 frontmatter + 薄 body
 
@@ -162,17 +162,17 @@ timestamp: <now>
 
 ## 验证
 
-- [ ] 对话里讨论了一个跨层 flow，说"归档这个"，生成 Flow 页
-- [ ] 对话里做了一个决策，说"归档 ADR"，生成 ADR 页
-- [ ] 对话里分析了状态传播，说"ingest StateMap"，生成 StateMap 页
-- [ ] 内容不适合归档时，提示"不适合"
-- [ ] index.md 和 log.md 正确更新
+- [x] 对话里讨论了一个跨层 flow，说"归档这个"，生成 Flow 页
+- [x] 对话里做了一个决策，说"归档 ADR"，生成 ADR 页
+- [x] 对话里分析了状态传播，说"ingest StateMap"，生成 StateMap 页
+- [x] 内容不适合归档时，提示"不适合"
+- [x] index.md 和 log.md 正确更新
 
 ## TODO
 
-- [ ] 写 ingest 流程指令（SKILL.md）
-- [ ] 写 4 个 type 的模板（Flow/ADR/StateMap/Convention 段）
-- [ ] 写内容类型判断启发式
-- [ ] 写"判断不准时让用户选"逻辑
-- [ ] 写 index.md + log.md 更新逻辑
-- [ ] dogfood 验证
+- [x] 写 ingest 流程指令（SKILL.md）
+- [x] 写 4 个 type 的模板（Flow/ADR/StateMap/Convention 段）
+- [x] 写内容类型分类规则（明确规则，非启发式）
+- [x] 写"判断不准时让用户选"逻辑
+- [x] 写 index.md + log.md 更新逻辑
+- [x] dogfood 验证

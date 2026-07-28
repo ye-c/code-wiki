@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // code-wiki OKF v0.1 合规校验
 // JSON-flow YAML 子集手写解析器（零依赖）
-// 8 项检查：frontmatter 存在 / type 非空 / index 结构 / log 结构 / 推荐字段 / 未知 type / 断链 / 绝对路径
+// 10 项检查：frontmatter 存在 / type 非空 / index 结构 / log 结构 / 推荐字段 / 未知 type / 断链 / 绝对路径 / 孤儿页 / stale concept
 
 'use strict';
 
@@ -102,11 +102,17 @@ function validateWiki(wikiRoot) {
   const files = walkMd(wikiRoot);
   let conceptCount = 0;
   const allLinks = [];
+  const conceptFiles = []; // 非保留文件，用于孤儿页扫描
+  // ponytail: 假设 .wiki/ 父目录就是项目根，SKILL.md 强约定
+  const projectRoot = path.dirname(wikiRoot);
 
   for (const file of files) {
     const rel = path.relative(wikiRoot, file);
     const content = fs.readFileSync(file, 'utf8');
     const isReserved = RESERVED_FILES.has(path.basename(file));
+
+    // 从所有文件（含 index.md）收集链接，用于孤儿页检测
+    allLinks.push(...collectLinks(content, wikiRoot, file).map(l => ({ ...l, from: rel })));
 
     if (isReserved) {
       // index.md / log.md 结构检查
@@ -122,6 +128,7 @@ function validateWiki(wikiRoot) {
     }
 
     conceptCount++;
+    conceptFiles.push(rel);
     const fm = parseFrontmatter(content);
     if (!fm) { errors.push(`${rel}: missing frontmatter`); continue; }
     if (!fm.type) { errors.push(`${rel}: missing 'type' field`); continue; }
@@ -134,7 +141,10 @@ function validateWiki(wikiRoot) {
       if (!(f in fm)) warnings.push(`${rel}: missing '${f}' field`);
     }
 
-    allLinks.push(...collectLinks(content, wikiRoot, file).map(l => ({ ...l, from: rel })));
+    // stale concept: resource 路径不存在
+    if (fm.resource && !fs.existsSync(path.join(projectRoot, fm.resource))) {
+      warnings.push(`${rel}: stale resource '${fm.resource}' (path not found)`);
+    }
   }
 
   // 断链
@@ -143,6 +153,21 @@ function validateWiki(wikiRoot) {
       warnings.push(`${link.from}: broken link → ${link.target}`);
     } else if (!link.target.startsWith('/')) {
       infos.push(`${link.from}: relative link '${link.target}' (OKF recommends absolute)`);
+    }
+  }
+
+  // 孤儿页：没被任何其他页链接的 concept
+  const inbound = new Set();
+  for (const link of allLinks) {
+    if (!fs.existsSync(link.resolved)) continue; // 断链已报
+    const targetRel = path.relative(wikiRoot, link.resolved);
+    if (conceptFiles.includes(targetRel)) {
+      inbound.add(targetRel);
+    }
+  }
+  for (const rel of conceptFiles) {
+    if (!inbound.has(rel)) {
+      warnings.push(`${rel}: orphan page (no inbound links)`);
     }
   }
 
@@ -190,29 +215,50 @@ function selfCheck() {
   fs.mkdirSync(tmp, { recursive: true });
   fs.mkdirSync(path.join(tmp, 'core'), { recursive: true });
 
-  // 合规 concept
+  // 合规 concept — resource 指向真实路径（scripts/ 存在于 plugin 根）
   fs.writeFileSync(path.join(tmp, 'core', 'good.md'),
     '---\n' +
-    'type: Concept\ntitle: Good\ndescription: ok\nresource: src/\ntags: [core]\ntimestamp: 2026-07-21\n' +
-    '---\n\n# Key Files\n\n- `src/foo.ts`\n');
+    'type: Concept\ntitle: Good\ndescription: ok\nresource: scripts/\ntags: [core]\ntimestamp: 2026-07-21\n' +
+    '---\n\n# Key Files\n\n- `scripts/validate-okf.js`\n');
   // 缺 frontmatter
   fs.writeFileSync(path.join(tmp, 'core', 'bad.md'), '# No frontmatter\n');
   // 缺 type
   fs.writeFileSync(path.join(tmp, 'core', 'notype.md'),
     '---\ntitle: NoType\n---\n\nbody\n');
-  // 断链
+  // 断链（有 inbound from index，非孤儿）
   fs.writeFileSync(path.join(tmp, 'core', 'broken.md'),
-    '---\ntype: Concept\ntitle: Broken\n---\n\n[missing](/missing/page.md)\n');
-  // index.md
+    '---\ntype: Concept\ntitle: Broken\ndescription: ok\nresource: scripts/\ntags: [core]\ntimestamp: 2026-07-21\n' +
+    '---\n\n[missing](/missing/page.md)\n');
+  // stale concept — resource 指向不存在的路径
+  fs.writeFileSync(path.join(tmp, 'core', 'stale.md'),
+    '---\ntype: Concept\ntitle: Stale\ndescription: ok\nresource: nonexistent/\ntags: [core]\ntimestamp: 2026-07-21\n' +
+    '---\n\nbody\n');
+  // 孤儿页 — 合规但无入链
+  fs.writeFileSync(path.join(tmp, 'core', 'orphan.md'),
+    '---\ntype: Concept\ntitle: Orphan\ndescription: ok\nresource: scripts/\ntags: [core]\ntimestamp: 2026-07-21\n' +
+    '---\n\nbody\n');
+  // index.md — 链接 good + broken（其余不链接，触发孤儿）
   fs.writeFileSync(path.join(tmp, 'index.md'),
-    '---\nokf_version: "0.1"\ngenerator: code-wiki\nsync_commit: abc1234\n---\n\n# Wiki\n\n* [Good](core/good.md)\n');
+    '---\nokf_version: "0.1"\ngenerator: code-wiki\nsync_commit: abc1234\n---\n\n# Wiki\n\n* [Good](core/good.md)\n* [Broken](core/broken.md)\n');
 
   const result = validateWiki(tmp);
-  const expectedErrors = 2; // bad.md + notype.md
-  const expectedWarnings = 1; // broken link (good.md has all recommended fields, bad.md has no fm so no field warnings, notype.md missing 4 recommended)
+  // errors: bad.md (no frontmatter) + notype.md (no type) = 2
+  // warnings:
+  //   - bad.md orphan (1)
+  //   - notype.md orphan (1)
+  //   - broken.md broken link (1)
+  //   - stale.md stale resource + orphan (2)
+  //   - orphan.md orphan (1)
+  //   = 6
+  const expectedErrors = 2;
+  const expectedWarnings = 6;
+  const hasStale = result.warnings.some(w => w.includes('stale resource'));
+  const hasOrphan = result.warnings.some(w => w.includes('orphan page'));
 
-  const pass = result.errors.length === expectedErrors && result.warnings.length >= expectedWarnings;
-  console.log(`self-check: ${pass ? 'PASS' : 'FAIL'} (${result.errors.length} errors, ${result.warnings.length} warnings)`);
+  const pass = result.errors.length === expectedErrors
+    && result.warnings.length === expectedWarnings
+    && hasStale && hasOrphan;
+  console.log(`self-check: ${pass ? 'PASS' : 'FAIL'} (${result.errors.length} errors, ${result.warnings.length} warnings, stale=${hasStale}, orphan=${hasOrphan})`);
   if (!pass) {
     console.log(formatReport(result));
     process.exit(1);

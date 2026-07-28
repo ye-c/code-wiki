@@ -55,18 +55,18 @@ init 默认只用 4 个（Domain/Concept/Index/Convention），其余 3 个（Fl
 **决策**：多部分组合：
 
 1. **目录**：`.wiki/` 默认 + `.gitignore *`（默认本地用，删 .gitignore 可提交 git）
-2. **触发**：SessionStart hook 检测 sync_commit drift + PostToolUse hook 静默标记 drift + 状态栏提示变更量 + 手动触发 update
-3. **处理**：git diff + 链接图传播 + 拓扑排序批处理交叉引用
-4. **级联修正**：update 时清 drift 标记，freeform 段加 review 标记
-5. **lint 兜底**：扫 review 标记，上游稳定则提示用户复查
-6. **频率**：不按时间，按变更量（1-5 攒着，5-15 建议清，15+ 必须清）
+2. **触发**：用户主动跑 `/code-wiki update`（无 hook，无状态栏提示）
+3. **处理**：git diff + reverse map 找 owner concept + 重生成结构化段
+4. **stale concept 检测**：resource 路径不存在 → 记 log，不自动删
+5. **lint 兜底**：扫 review 标记（触发源是 Boy Scout Rule，非 hook）
+6. **drift 自然报**：update Phase 1 跑 git diff 时自然发现并报告
 
 **理由**：
 - `.wiki/` + `.gitignore *` — 用户选择，init 时告知如何切换共享模式
-- hook 走 CC 路线（参考 ponytail），不走 git hook — CC hook 能拿文件语义，跨工具统一
-- 交叉引用必须拓扑排序，否则循环传播
-- drift 标记必须闭环（update 清 + lint 推），否则积压变噪音
-- 按变更量而非时间 — 改代码上头时不打断，攒够再清
+- 无 hook（P10 决策）— drift 检测融进 update，零 LLM 主动性依赖
+- reverse map 驱动 — 不依赖 hooks，git diff 是唯一变更来源
+- stale concept 不自动删 — 删不可逆，记 log 提示用户手动复查
+- 按用户主动触发 — 不按时间/变更量自动打断，用户自己判断何时清
 
 ## P5: skill 名字
 
@@ -142,3 +142,21 @@ init 默认只用 4 个（Domain/Concept/Index/Convention），其余 3 个（Fl
 - type 词汇表 7 个全是代码专用，Personal Mode 要 Entity/Topic 等另一套
 - git log 显示高频痛点都在代码导航，Personal Mode 不是真实痛点
 - 留扩展点：type 词汇表可扩、DISCOVER 可配置、未来可派生 life-wiki/research-wiki skill
+
+## P10: 砍 hooks，drift 检测融进 update
+
+**背景**：06/07 hooks 性能拖累 + YAGNI（git diff 已覆盖 drift 检测）。原方案让 LLM 会话开始跑 git rev-list 报 drift（CLAUDE.md 规则 6），但过度依赖 LLM 主动性，低级模型会静默跳过。
+
+**决策**：砍 06/07。drift 检测改两条路径：
+1. **update Phase 1** 跑 git diff 时自然发现并报告（用户主动触发，确定性）
+2. **Boy Scout Rule**（CLAUDE.md 协议段第 5 条，锦上添花，非核心）
+
+**CLAUDE.md 协议段不加第 6 条**。drift 检测放 update 里，不靠 LLM 主动性。
+
+**理由**：
+- 零 JS hook，零 hook 注册，复用 CC 已有工具调用
+- update 是确定性触发，不靠 LLM 记得跑命令
+- 低级模型也能跑 update（就是跑 git 命令 + 解析输出）
+- Boy Scout Rule 是 bonus，不是 load-bearing — 核心流程不依赖 LLM 主动性
+- 机械操作（drift 检测、lint 检查）脚本化或 git 命令化，不靠 LLM 主动性
+- 语义操作（域划分、分类、生成 markdown）LLM 化，但给明确规则降低模型能力要求

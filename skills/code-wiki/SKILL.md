@@ -262,8 +262,127 @@ Incrementally update wiki after code changes. Three phases: DETECT → REGENERAT
 
 ## lint
 
-TODO: 实现见 docs/modules/04
+Run `node <plugin-dir>/scripts/validate-okf.js .wiki`. Report output to user verbatim. If warnings: list each with one-line fix suggestion. Do not auto-fix — lint is read-only.
+
+Common warnings and suggestions:
+- `broken link → /x/y.md` — target missing. Either write the page or fix the path.
+- `orphan page` — no inbound links. Add a link from index.md or a related concept.
+- `stale resource 'x/'` — code path deleted. Update `resource` field or delete the concept.
 
 ## ingest
 
-TODO: 实现见 docs/modules/05
+User says "归档这个" / "ingest this" / `/code-wiki ingest [type] [name]`.
+
+### 1. Read recent assistant replies
+
+Scan the current conversation for substantive content worth archiving.
+
+### 2. Classify by explicit rules (not heuristic)
+
+Match content against these rules in order:
+
+| Content signal | type |
+|----------------|------|
+| Contains "X 流到 Y" / "请求路径" / "执行路径" / "请求从 A 到 B" | **Flow** |
+| Contains "决定用 X" / "选 X 不选 Y" / "因为 Z" / "权衡" | **ADR** |
+| Contains "字段 X 在 A 被" / "env var" / "状态传播" / "配置在" | **StateMap** |
+| Edge case handling / "要注意" / "特殊情况" | append to existing Convention page's `# Edge Cases` section |
+| None match | do not archive, tell user "内容不适合归档" |
+
+If type unclear or multiple match: list candidates, let user pick. User can also force type via `/code-wiki ingest Flow <name>`.
+
+### 3. Generate frontmatter + thin body
+
+**Flow template**:
+```markdown
+---
+type: Flow
+title: <Flow name>
+description: <one sentence>
+tags: [<related domain>]
+timestamp: <ISO 8601 today>
+---
+
+# Trigger
+
+<when this flow fires>
+
+# Path
+
+1. <entry> → <first stop>
+2. <first stop> → <second stop>
+3. ...
+
+# Notes
+
+<key decision points, edge cases>
+```
+
+**ADR template**:
+```markdown
+---
+type: ADR
+title: <decision name>
+tags: [<related domain>]
+timestamp: <ISO 8601 today>
+---
+
+# Context
+
+<why this decision was needed>
+
+# Decision
+
+<the decision>
+
+# Consequences
+
+<what this means going forward>
+```
+
+**StateMap template**:
+```markdown
+---
+type: StateMap
+title: <state field name>
+description: <one sentence>
+tags: [<related domain>]
+timestamp: <ISO 8601 today>
+---
+
+# Field
+
+- Name: `<env var or state field>`
+- Type: `<type>`
+
+# Propagation
+
+| File | Usage |
+|------|-------|
+| `<path>` | <how used> |
+
+# UI Impact
+
+<which UI elements this field affects>
+```
+
+**Convention fragment**: do not create new file. Append to existing `.wiki/conventions.md` (or relevant Convention page) under `# Edge Cases` section.
+
+### 4. Write to domain directory
+
+- Flow/ADR/StateMap → `.wiki/<most-relevant-domain>/<name>.md`
+- Convention fragment → append to existing Convention file
+- If domain unclear: ask user.
+
+### 5. Update index.md + log.md
+
+**index.md**: add new page to the relevant domain group.
+
+**log.md** (create `## <today>` heading if missing):
+```
+* **ingest**: Added `<path>` (type: <Type>). Captured <one-line description>.
+```
+
+### 6. Validate
+
+Run `node <plugin-dir>/scripts/validate-okf.js .wiki`. If errors > 0: fix and re-validate.

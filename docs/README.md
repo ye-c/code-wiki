@@ -19,7 +19,7 @@
 
 ### 核心文档
 - [architecture.md](architecture.md) — 整体架构设计
-- [decisions.md](decisions.md) — P1-P9 决策记录（ADR 式）
+- [decisions.md](decisions.md) — P1-P10 决策记录（ADR 式）
 
 ### 模块文档（按开发顺序）
 
@@ -28,10 +28,10 @@
 | 01 | plugin 骨架 | [01-plugin-skeleton.md](modules/01-plugin-skeleton.md) | DONE | — |
 | 02 | skill: init | [02-skill-init.md](modules/02-skill-init.md) | DONE | 01 |
 | 03 | skill: update | [03-skill-update.md](modules/03-skill-update.md) | DONE | 02 |
-| 04 | skill: lint | [04-skill-lint.md](modules/04-skill-lint.md) | TODO | 02 |
-| 05 | skill: ingest | [05-skill-ingest.md](modules/05-skill-ingest.md) | TODO | 02 |
-| 06 | hook: SessionStart | [06-hook-session-start.md](modules/06-hook-session-start.md) | TODO | 01 |
-| 07 | hook: PostToolUse | [07-hook-post-tool-use.md](modules/07-hook-post-tool-use.md) | TODO | 01 |
+| 04 | skill: lint | [04-skill-lint.md](modules/04-skill-lint.md) | DONE | 02 |
+| 05 | skill: ingest | [05-skill-ingest.md](modules/05-skill-ingest.md) | DONE | 02 |
+| 06 | hook: SessionStart | [06-hook-session-start.md](modules/06-hook-session-start.md) | WONTFIX | 01 |
+| 07 | hook: PostToolUse | [07-hook-post-tool-use.md](modules/07-hook-post-tool-use.md) | WONTFIX | 01 |
 | 08 | CLAUDE.md 注入 | [08-claude-md-protocol.md](modules/08-claude-md-protocol.md) | DONE | 02 |
 | 09 | OKF 合规校验 | [09-okf-conformance.md](modules/09-okf-conformance.md) | DONE | 02 |
 | 10 | dogfood | [10-dogfood.md](modules/10-dogfood.md) | TODO | 全部 |
@@ -40,10 +40,12 @@
 
 v0.1 极简版（先验证核心价值）：
 - ✅ init 操作（SKILL.md 指令式，CC 临场推理，无辅助脚本）
-- ✅ CLAUDE.md 协议段注入
-- ✅ OKF 合规校验（最小集）
-- ❌ hooks（v0.2）
-- ❌ update/lint/ingest（v0.3+）
+- ✅ update 操作（git diff 驱动，drift 自然报，stale concept 检测）
+- ✅ lint 操作（融进 validate-okf.js，3 项检查）
+- ✅ ingest 操作（零脚本，SKILL.md prompt + 明确规则分类）
+- ✅ CLAUDE.md 协议段注入（5 条规则，Boy Scout Rule 降为 bonus）
+- ✅ OKF 合规校验（10 项检查）
+- ❌ hooks（WONTFIX，update + Boy Scout Rule 替代）
 
 v0.2+ 按 modules/10-dogfood.md 的顺序迭代。
 
