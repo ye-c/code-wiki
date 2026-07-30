@@ -5,7 +5,7 @@
 
 ## 目标
 
-实现 `/code-wiki ingest` — 把对话产物归档成新 wiki 页。
+实现 `/code-wiki ingest` — 把对话产物归档成新 wiki 页，或填充现有 concept 的 `<!-- TODO: ingest -->` 占位。
 
 对齐 Karpathy ingest 操作，但语义偏移：
 - Karpathy ingest = 吃外部新源（文章/论文）
@@ -26,10 +26,15 @@
 ```
 1. 读最近 assistant 回复
 2. 判断内容类型 → 对应 type
-3. 生成 frontmatter + 薄 body
-4. 放到对应 domain 目录
-5. 更新 index.md + log.md
+3. 检查是否有匹配的 `<!-- TODO: ingest -->` 占位
+4. 生成 frontmatter + 薄 body（或填充占位）
+5. 放到对应 domain 目录（或更新现有 concept）
+6. 更新 index.md + log.md
 ```
+
+### 全局要求：Task 规划
+
+ingest 是多阶段长链任务。开始前必须用 `TaskCreate` 创建 6 个任务（对应 6 步骤），每步骤开始时 `TaskUpdate` 标 in_progress，完成标 completed。
 
 ### 1. 读最近 assistant 回复
 
@@ -49,12 +54,26 @@ SKILL.md 指示 CC 查看本会话上下文中的最近 assistant 回复（skill
 | 包含 "X 流到 Y" / "请求路径" / "执行路径" / "请求从 A 到 B" | **Flow** |
 | 包含 "决定用 X" / "选 X 不选 Y" / "因为 Z" / "权衡" | **ADR** |
 | 包含 "字段 X 在 A 被" / "env var" / "状态传播" / "配置在" | **StateMap** |
-| edge case 处理 / "要注意" / "特殊情况" | 追加到已有 Convention 页的 `# Edge Cases` 段 |
+| 包含 "踩过坑" / "要注意" / "特殊情况" / "实测发现" | **Gotchas**（填充 concept 的 TODO 占位） |
+| 包含 "性能" / "benchmark" / "耗时" / "吞吐" | **Performance**（填充 concept 的 TODO 占位） |
+| edge case 处理 / "特殊情况" | 追加到已有 Convention 页的 `# Edge Cases` 段 |
 | 以上都不匹配 | 不归档，提示"内容不适合归档" |
 
 **判断不准或多重匹配时**：列出候选 type，让用户选。用户也可显式 `/code-wiki ingest Flow <name>` 强制指定。
 
-### 3. 生成 frontmatter + 薄 body
+### 3. 检查是否有匹配的 `<!-- TODO: ingest -->` 占位
+
+**Gotchas / Performance / ADR 内容**：先扫描现有 concept 文件，找 `<!-- TODO: ingest -->` 占位。如果对话内容对应某个 concept 的占位，**填充占位**（不新建页）。
+
+**Flow / StateMap 内容**：通常新建页（跨 concept 的流程/状态传播）。
+
+**找不准对应 concept 时**：提示用户选。
+
+### 4. 生成 frontmatter + 薄 body（或填充占位）
+
+**填充占位**：如果步骤 3 找到匹配的 `<!-- TODO: ingest -->` 占位，直接在占位处插入内容（不新建页）。更新 concept 的 frontmatter `timestamp` 为今天。
+
+**新建页**：如果步骤 3 没找到占位，生成新页。
 
 **Flow 模板**：
 ```markdown
@@ -132,16 +151,19 @@ timestamp: <now>
 
 **Convention 段**：不新建文件，追加到已有 Convention 页的 `# Edge Cases` 段。
 
-### 4. 放到对应 domain 目录
+### 5. 放到对应 domain 目录（或更新现有 concept）
 
+**填充占位**：如果步骤 3 找到占位，直接更新对应 concept 文件（已在步骤 4 完成），跳过此步骤。
+
+**新建页**：
 - Flow/ADR/StateMap → 放到最相关的 domain 目录下
 - Convention 段 → 找到对应的 Convention 文件追加
 
 **找不准 domain 时**：提示用户选。
 
-### 5. 更新 index.md + log.md
+### 6. 更新 index.md + log.md + validate
 
-**index.md**：新页加到对应 domain 分组下。
+**index.md**：新页加到对应 domain 分组下（填充占位不需要更新 index）。
 
 **log.md**：
 ```markdown
@@ -149,12 +171,21 @@ timestamp: <now>
 * **ingest**: Added `<path>` (type: <Type>). Captured <一句话描述>.
 ```
 
+如果是填充占位：
+```markdown
+## <today>
+* **ingest**: Filled `<!-- TODO: ingest -->` in `<concept-path>` with <Type> content.
+```
+
+**validate**：跑 `node <plugin-dir>/scripts/validate-okf.js .wiki`。errors > 0 → 修后重跑。
+
 ## 关键决策
 
 - **用户显式触发**（P6）— 不主动问要不要归档
 - **ingest 而非 archive/mark/meme**（P6）— 对齐 Karpathy 原词，语义最准
 - **判断不准时让用户选**（P3 精神）— 结构性决策值得人工介入
 - **薄 body**（P2）— ingest 也是薄 body，后续维护中加厚
+- **填充 TODO 占位** — init 阶段标了 `<!-- TODO: ingest -->` 的内容（Gotchas/ADR/Performance），ingest 是填充的自然时机
 
 ## 辅助脚本
 

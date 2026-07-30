@@ -25,15 +25,31 @@ init 默认只用 4 个（Domain/Concept/Index/Convention），其余 3 个（Fl
 **背景**：init 时 body 该生成到什么程度？太厚维护成本爆炸，太薄 Agent 读不到关键信息。
 
 **决策**：三档渐进：
-- **薄**（init 默认）：frontmatter + Key Files + Dependencies，无 freeform
-- **中**（lint 建议补）：+ Architecture（export 符号）+ Edge Cases（TODO/FIXME 扫描）
-- **厚**（update 可选触发）：+ Gotchas（LLM 学到的坑点）+ Change Prone（变更频率）
+- **薄**（init 默认）：frontmatter + Key Files + Dependencies + **段词表（Purpose 必选 + Usage/Relationships/Notes 按需 0-3 个）**
+- **中**（lint 建议补）：+ Edge Cases（代码里硬编码的边界条件扫描）+ Gotchas（ingest 积累）
+- **厚**（update 可选触发）：+ Change Prone + Performance Notes（实测数据）
+
+**段词表**（4 个，LLM 按模块性质选 1-4 个）：
+- `## Purpose`（必选）— 业务目的 / 为什么存在
+- `## Usage`（可选）— 怎么用，不是怎么实现
+- `## Relationships`（可选）— 连接关系 + 数据流 + 依赖
+- `## Notes`（可选）— 边界 / 副作用 / 兜底
+
+**LLM 按模块性质选段**：
+- 策略/服务类 → Purpose + Usage + Relationships
+- 工具函数 → Purpose + Usage
+- 配置/常量 → Purpose + Notes
+- 基础设施（cache/logger）→ Purpose + Notes
+- 入口/编排 → Purpose + Relationships
 
 **理由**：
 - git log 证明 wiki 是高频维护资产，body 厚度直接决定维护成本
-- 薄版本 init 后立即可用 — Agent 靠 frontmatter + Key Files 能导航
-- 厚 body 是 LLM 生成的，质量参差，用户不敢信也不敢删，变僵尸内容
-- Karpathy 原话 "LLM does all the grunt work" — 但 init 时 LLM 还没开始 grunt work，强行生成就是编
+- 薄版本 init 后立即可用 — Agent 靠 frontmatter + Key Files + 段词表能导航
+- Karpathy "LLM does all the grunt work" — init 时 LLM 还没开始 grunt work，强行生成 Gotchas/ADR 就是编
+- 但 Purpose/Usage/Relationships/Notes 是 LLM 读代码能合理推断的（业务目的、公开接口、跨文件流、边界条件），不是编造
+- Gotchas/ADR/Performance 留给 ingest，init 阶段标 `<!-- TODO: ingest -->` 占位
+- 段名依据：Karpathy "summaries not just content"、RDD "how to use not how built"、pur4v "system relationships"、ADR "Context/Consequences"
+- 段词表 4 个是甜点（对齐 P1 type 词汇表论点），固定段名保证一致性，LLM 按需选段防偷懒也防乱来
 
 ## P3: 阶段 2 介入程度
 

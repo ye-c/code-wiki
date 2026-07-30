@@ -5,13 +5,17 @@
 
 ## 目标
 
-实现 `/code-wiki update` — git diff 驱动增量更新，只重生成结构化段，不动 freeform。
+实现 `/code-wiki update` — git diff 驱动增量更新，重生成结构化段（含段词表 4 段），不动 freeform。
 
 ## 流程（3 阶段）
 
 ```
 DETECT → REGENERATE → VALIDATE
 ```
+
+### 全局要求：Task 规划
+
+update 是多阶段长链任务。开始前必须用 `TaskCreate` 创建 3 个任务（对应 3 阶段），每阶段开始时 `TaskUpdate` 标 in_progress，完成标 completed。
 
 ### Phase 1: DETECT
 
@@ -35,9 +39,14 @@ DETECT → REGENERATE → VALIDATE
 4. 对每个受影响的 concept 文件：
    - 重读 `resource` 指向的源文件。
    - 更新 frontmatter `timestamp` 为今天（ISO 8601）。
+   - **重生成段词表 4 段**（按 P2 段选择决策表）：
+     - `## Purpose` — 业务目的（如果代码语义变了，更新）
+     - `## Usage` — 怎么用（如果 API 变了，更新）
+     - `## Relationships` — 连接关系（如果依赖变了，更新）
+     - `## Notes` — 边界条件（如果代码边界变了，更新）
    - 重生成 `# Key Files` 段：列当前源文件 + 一句话用途。
    - 重生成 `# Dependencies` 段：扫 imports，分 internal（wiki cross-link）和 external（package name）。
-   - **不动 freeform 段**（Architecture / Gotchas / 用户手填内容）。
+   - **不动 freeform 段**（Gotchas / ADR / 用户手填内容，包括 `<!-- TODO: ingest -->` 占位后的内容）。
 5. unmapped 文件不建新 concept，记到 log。
 6. **stale concept 检测**：扫所有 concept 的 `resource` 字段，如果路径在硬盘上不存在（代码已删/重命名），记到 log 为 stale。**不自动删 concept**（删不可逆，让用户手动）。输出提示用户复查。
 

@@ -8,11 +8,40 @@ argument-hint: "[init|update|lint|ingest]"
 
 Route by argument: `init` / `update` / `lint` / `ingest`. Default = `init`.
 
+## Global: Task Planning
+
+All code-wiki operations are multi-phase long-chain tasks. Before starting, use `TaskCreate` to create tasks for each phase. Mark each `in_progress` when starting, `completed` when done. This keeps you and the user tracking progress and prevents phase skipping.
+
+## Concept Body Sections
+
+Every concept **MUST** have a `## Purpose` section. Select 0-3 additional sections based on module type:
+
+| Module type | Sections |
+|-------------|----------|
+| Strategy / Service / Business logic | Purpose + Usage + Relationships |
+| Utility functions / Helpers | Purpose + Usage |
+| Config / Constants | Purpose + Notes |
+| Infrastructure (cache/logger/db) | Purpose + Notes |
+| Entrypoint / Orchestration | Purpose + Relationships |
+
+**Section definitions**:
+- `## Purpose` — one-sentence business purpose. Infer from function names + params + call patterns.
+- `## Usage` — how to use, not how built. Key signatures + semantics.
+- `## Relationships` — cross-concept data/control flow, including polymorphic dispatch.
+- `## Notes` — edge conditions / side effects / data formats / state. Catch-all.
+
+**Do NOT generate at init** (mark `<!-- TODO: ingest -->` placeholder):
+- Gotchas (requires experience)
+- ADR (requires decision context)
+- Performance (requires measurement)
+
 ---
 
 ## init
 
 Generate OKF v0.1 compliant code navigation wiki for the current project.
+
+Create 6 tasks: DISCOVER / PROPOSE / AUTHOR / INDEX / VALIDATE / Finalize.
 
 ### Phase 1: DISCOVER
 
@@ -29,6 +58,10 @@ Scan project root to identify domains and concepts.
 - `src/` `lib/` `app/` `cmd/` `internal/` `pkg/` `core/`
 - Subdirectories with multiple source files → candidate domain
 
+**Business context**:
+- Read README (if exists) to extract business summary
+- Read each candidate domain's entry file to infer business purpose
+
 **Always exclude from domain detection** (don't scan, don't build concepts):
 - Test dirs: `tests/` `test/` `__tests__/` `spec/` `*_test/` `test_*`
 - Dep dirs: `node_modules/` `.venv/` `venv/` `__pycache__/` `.tox/` `dist/` `build/` `target/` `vendor/`
@@ -44,7 +77,14 @@ Scan project root to identify domains and concepts.
   - If the root has multiple business files (3+), build a `<project>` or `root` domain for them.
 - A directory becomes a domain only if it contains business logic (multiple source files that aren't all tests).
 
-**Output**: list of candidate domains, each with evidence and concept candidates.
+**Output** (structured, not just "Phase 1 done"):
+```
+## DISCOVER Output
+- README: yes/no (summary: ...)
+- Candidate domains:
+  - <domain>: N files, entry <entry>, purpose: <one sentence>
+  - ...
+```
 
 ### Phase 2: PROPOSE
 
@@ -69,25 +109,16 @@ User can adjust domain partition after init by re-running or editing `.wiki/` di
 
 For each domain, create `.wiki/<domain>/` directory. For each concept, write `.wiki/<domain>/<concept>.md`:
 
-```markdown
----
-type: Concept
-title: <inferred from code symbol or directory name>
-description: <one sentence from file header comment or exports>
-resource: <source path, e.g. src/services/api/>
-tags: [<domain>, <tech stack>]
-timestamp: <ISO 8601 today>
----
+**Get actual timestamp** via Bash: `date -u +"%Y-%m-%dT%H:%M:%S%z"`
 
-# Key Files
+**IMPORTANT**: Follow the 3 examples above. Each concept MUST have:
+1. `## Purpose` section (mandatory — validate-okf.js checks this)
+2. Appropriate sections based on module type (see examples)
+3. `## Key Files` section
+4. `## Dependencies` section
+5. `<!-- TODO: ingest -->` placeholder at the end
 
-- `<path>` — <inferred purpose>
-
-# Dependencies
-
-- Imports from [other concept](/domain/concept.md)
-- External: <package names from imports>
-```
+Omit sections that don't apply to the module type. Do NOT include all 4 sections for every concept.
 
 For each domain, write `.wiki/<domain>/index.md` (domain navigation map, reuses OKF §6 reserved name):
 
@@ -98,7 +129,7 @@ title: <domain name>
 description: <one sentence summary>
 resource: <domain root path>
 tags: [<domain>]
-timestamp: <ISO 8601 today>
+timestamp: <ISO 8601 now>
 ---
 
 # Concepts
@@ -115,7 +146,7 @@ title: Project Conventions
 description: Coding standards and project-level rules
 resource: <list of source files>
 tags: [meta]
-timestamp: <ISO 8601 today>
+timestamp: <ISO 8601 now>
 ---
 
 # Conventions
@@ -125,10 +156,10 @@ timestamp: <ISO 8601 today>
 
 **Rules**:
 - Use `Write` tool for each file
+- **Write files BEFORE announcing phase complete** — no "Phase 3 done" then write files
 - Infer title from: export names, class names, directory name (in that priority)
 - Infer description from: file header comment, module docstring, first meaningful line
 - Dependencies: scan imports, group into internal (wiki cross-link) and external (package name)
-- Keep body thin — no Architecture, no Gotchas sections at init
 
 ### Phase 4: INDEX
 
@@ -138,7 +169,7 @@ Write `.wiki/index.md`:
 ---
 okf_version: "0.1"
 generator: code-wiki
-generated_at: <ISO 8601 now>
+generated_at: <ISO 8601 now from Bash date command>
 sync_commit: <git HEAD short hash>
 ---
 
@@ -200,11 +231,17 @@ Before reading or editing any files, you MUST:
 
 **3. .gitignore**: Write `.wiki/.gitignore` with content `*`.
 
-**4. Output**:
+**4. Output** (mandatory, do not skip):
 
 ```
-已创建 .wiki/ 并设置 .gitignore *
-- wiki 默认不进 git，仅本地使用
+## Wiki 初始化完成
+- 域: N 个
+- 概念: M 个
+- sync_commit: <hash>
+- .gitignore: * (本地模式，删 .gitignore 切共享)
+- CLAUDE.md: 已注入协议段
+
+wiki 默认不进 git，仅本地使用
 - 想团队共享：删掉 .wiki/.gitignore，git add .wiki/，commit
 - 已自动更新 CLAUDE.md，添加 Code Wiki Retrieval Protocol
 - CC 每次会话会先读 .wiki/index.md 再动代码
@@ -216,6 +253,8 @@ Before reading or editing any files, you MUST:
 ## update
 
 Incrementally update wiki after code changes. Three phases: DETECT → REGENERATE → VALIDATE.
+
+Create 3 tasks: DETECT / REGENERATE / VALIDATE.
 
 ### Phase 1: DETECT
 
@@ -237,9 +276,14 @@ Incrementally update wiki after code changes. Three phases: DETECT → REGENERAT
 4. For each affected concept file:
    - Re-read the source files it covers (from `resource` field).
    - Update frontmatter `timestamp` to today (ISO 8601).
-   - Regenerate `# Key Files` section: list current source files with one-line purpose each.
-   - Regenerate `# Dependencies` section: scan imports, group into internal (wiki cross-link) and external (package name).
-   - **Do NOT modify** any freeform sections (Architecture, Gotchas, user-written content). Keep them as-is.
+   - **Regenerate Section Vocabulary 4 sections** (per P2 selection table):
+     - `## Purpose` — business purpose (update if code semantics changed)
+     - `## Usage` — how to use (update if API changed)
+     - `## Relationships` — connections (update if dependencies changed)
+     - `## Notes` — edge conditions (update if code boundaries changed)
+   - Regenerate `## Key Files` section: list current source files with one-line purpose each.
+   - Regenerate `## Dependencies` section: scan imports, group into internal (wiki cross-link) and external (package name).
+   - **Do NOT modify** any freeform sections (Gotchas / ADR / user-written content, including content after `<!-- TODO: ingest -->` placeholders). Keep them as-is.
 5. For unmapped files: do not create new concepts. Record them for the log entry.
 
 ### Phase 3: VALIDATE
@@ -273,6 +317,8 @@ Common warnings and suggestions:
 
 User says "归档这个" / "ingest this" / `/code-wiki ingest [type] [name]`.
 
+Create 6 tasks: Read / Classify / Check Placeholder / Generate / Place / Update.
+
 ### 1. Read recent assistant replies
 
 Scan the current conversation for substantive content worth archiving.
@@ -286,12 +332,26 @@ Match content against these rules in order:
 | Contains "X 流到 Y" / "请求路径" / "执行路径" / "请求从 A 到 B" | **Flow** |
 | Contains "决定用 X" / "选 X 不选 Y" / "因为 Z" / "权衡" | **ADR** |
 | Contains "字段 X 在 A 被" / "env var" / "状态传播" / "配置在" | **StateMap** |
-| Edge case handling / "要注意" / "特殊情况" | append to existing Convention page's `# Edge Cases` section |
+| Contains "踩过坑" / "要注意" / "特殊情况" / "实测发现" | **Gotchas** (fill concept TODO placeholder) |
+| Contains "性能" / "benchmark" / "耗时" / "吞吐" | **Performance** (fill concept TODO placeholder) |
+| Edge case handling / "特殊情况" | append to existing Convention page's `# Edge Cases` section |
 | None match | do not archive, tell user "内容不适合归档" |
 
 If type unclear or multiple match: list candidates, let user pick. User can also force type via `/code-wiki ingest Flow <name>`.
 
-### 3. Generate frontmatter + thin body
+### 3. Check for matching `<!-- TODO: ingest -->` placeholder
+
+**Gotchas / Performance / ADR content**: scan existing concept files for `<!-- TODO: ingest -->` placeholders. If the conversation content matches a concept's placeholder, **fill the placeholder** (don't create new page).
+
+**Flow / StateMap content**: usually create new page (cross-concept flow/state propagation).
+
+**Can't determine which concept**: ask user.
+
+### 4. Generate frontmatter + thin body (or fill placeholder)
+
+**Fill placeholder**: if step 3 found a match, insert content at the placeholder location (don't create new page). Update the concept's frontmatter `timestamp` to today.
+
+**New page**: if step 3 found no match, generate new page.
 
 **Flow template**:
 ```markdown
@@ -368,21 +428,27 @@ timestamp: <ISO 8601 today>
 
 **Convention fragment**: do not create new file. Append to existing `.wiki/conventions.md` (or relevant Convention page) under `# Edge Cases` section.
 
-### 4. Write to domain directory
+### 5. Write to domain directory (or update existing concept)
 
+**Fill placeholder**: if step 3 found a match, the concept file was already updated in step 4. Skip this step.
+
+**New page**:
 - Flow/ADR/StateMap → `.wiki/<most-relevant-domain>/<name>.md`
 - Convention fragment → append to existing Convention file
 - If domain unclear: ask user.
 
-### 5. Update index.md + log.md
+### 6. Update index.md + log.md + validate
 
-**index.md**: add new page to the relevant domain group.
+**index.md**: add new page to the relevant domain group (not needed for placeholder fills).
 
 **log.md** (create `## <today>` heading if missing):
 ```
 * **ingest**: Added `<path>` (type: <Type>). Captured <one-line description>.
 ```
 
-### 6. Validate
+If filling placeholder:
+```
+* **ingest**: Filled `<!-- TODO: ingest -->` in `<concept-path>` with <Type> content.
+```
 
-Run `node <plugin-dir>/scripts/validate-okf.js .wiki`. If errors > 0: fix and re-validate.
+**validate**: run `node <plugin-dir>/scripts/validate-okf.js .wiki`. If errors > 0: fix and re-validate.

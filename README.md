@@ -42,4 +42,10 @@ ln -s /path/to/code-wiki ~/.claude/plugins/local/code-wiki
 
 ## 状态
 
-v0.1 开发中。MVP 范围：init + CLAUDE.md 注入 + OKF 校验。
+v0.3.0。MVP 范围：init + update + lint + ingest + CLAUDE.md 注入 + OKF 校验。
+
+### 核心特性
+
+- **段词表（P2）**：每个 concept 包含 Purpose（必选）+ Usage/Relationships/Notes（按需）四段，补 codegraph 盲区
+- **Task 规划**：所有操作使用 TaskCreate/TaskUpdate 分阶段追踪
+- **ingest 填充占位**：对话产物可填充 init 阶段的 `<!-- TODO: ingest -->` 占位

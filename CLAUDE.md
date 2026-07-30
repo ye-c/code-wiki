@@ -14,7 +14,7 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 - docs/modules/02-skill-init.md — DONE（init 六阶段已就位）
 - docs/modules/03-skill-update.md — DONE（update 三阶段已就位）
 - docs/modules/04-skill-lint.md — lint 操作
-- docs/modules/05-skill-ingest.md — ingest 操作
+- docs/modules/05-skill-ingest.md — DONE（ingest 六步骤，填充 TODO 占位，Task 规划）
 - docs/modules/06-hook-session-start.md — SessionStart hook
 - docs/modules/07-hook-post-tool-use.md — PostToolUse hook
 - docs/modules/08-claude-md-protocol.md — DONE（CLAUDE.md 注入）
@@ -24,8 +24,8 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 ## 已完成
 
 - Module 01 (plugin 骨架): DONE — .claude-plugin/plugin.json, hooks/, skills/code-wiki/SKILL.md (占位), commands/code-wiki.toml, README.md, .gitignore
-- Module 02 (skill init): DONE — SKILL.md init 六阶段（DISCOVER→PROPOSE→AUTHOR→INDEX→VALIDATE→Finalize），PROPOSE 不暂停
-- Module 03 (skill update): DONE — SKILL.md update 三阶段（DETECT→REGENERATE→VALIDATE），不依赖 hooks，git diff 驱动
+- Module 02 (skill init): DONE — SKILL.md init 六阶段（DISCOVER→PROPOSE→AUTHOR→INDEX→VALIDATE→Finalize），PROPOSE 不暂停，段词表 4 段，Task 规划
+- Module 03 (skill update): DONE — SKILL.md update 三阶段（DETECT→REGENERATE→VALIDATE），不依赖 hooks，git diff 驱动，重生成段词表 4 段，Task 规划
 - Module 08 (CLAUDE.md 注入): DONE — 三分支检测（无/有/已有协议段），5 条规则，`@.wiki/index.md`
 - Module 09 (OKF 校验): DONE — scripts/validate-okf.js (手写 YAML 解析器 + 8 项检查 + 自检 fixture)
 - 文档补丁已应用: B1 (PROPOSE 去强制暂停), B2 (JSON-flow YAML 子集), B3 (ingest 措辞), D2 (drift 文件合并), 06/07 hook 约定
@@ -39,6 +39,9 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 - CLAUDE.md 注入三分支：无 CLAUDE.md / 有无协议段 / 已有协议段
 - 协议段 heading 必须是 `## 🤖 Code Wiki Retrieval Protocol`（带 emoji）
 - 协议段首行 `@.wiki/index.md`
+- **段词表 4 段**（P2）：Purpose（必选）+ Usage/Relationships/Notes（按需 0-3 个），LLM 按模块性质选段
+- **Task 规划**：所有操作使用 TaskCreate/TaskUpdate 分阶段追踪，防止阶段跳过
+- **ingest 填充占位**：Gotchas/ADR/Performance 内容优先填充 init 阶段的 `<!-- TODO: ingest -->` 占位
 
 ## 验证流程
 

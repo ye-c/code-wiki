@@ -219,7 +219,7 @@ function selfCheck() {
   fs.writeFileSync(path.join(tmp, 'core', 'good.md'),
     '---\n' +
     'type: Concept\ntitle: Good\ndescription: ok\nresource: scripts/\ntags: [core]\ntimestamp: 2026-07-21\n' +
-    '---\n\n# Key Files\n\n- `scripts/validate-okf.js`\n');
+    '---\n\nbody\n');
   // 缺 frontmatter
   fs.writeFileSync(path.join(tmp, 'core', 'bad.md'), '# No frontmatter\n');
   // 缺 type
