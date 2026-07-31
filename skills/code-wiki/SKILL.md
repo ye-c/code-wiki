@@ -47,6 +47,11 @@ Create 6 tasks: DISCOVER / PROPOSE / AUTHOR / INDEX / VALIDATE / Finalize.
 
 Scan project root to identify domains and concepts.
 
+**Pre-flight check**:
+If `.wiki/` exists:
+- Run: `mv .wiki .wiki-bak-$(date +%Y%m%d-%H%M%S)`
+- Log: "Backed up existing .wiki to .wiki-bak-<timestamp>"
+
 **Manifest scan** (highest priority):
 - `package.json` → `workspaces`, `main`, `exports`
 - `pyproject.toml` → `[project]`, `[tool.*]`
@@ -63,12 +68,12 @@ Scan project root to identify domains and concepts.
 - Read each candidate domain's entry file to infer business purpose
 
 **Always exclude from domain detection** (don't scan, don't build concepts):
-- Test dirs: `tests/` `test/` `__tests__/` `spec/` `*_test/` `test_*`
-- Dep dirs: `node_modules/` `.venv/` `venv/` `__pycache__/` `.tox/` `dist/` `build/` `target/` `vendor/`
-- Non-source: `.env`, `*.ipynb` (unless notebook project), `*.html`, `assets/` `public/` `static/`
+- Test dirs: `tests/` `test/` `__tests__/` `spec/` `*_test/` `test_*` `src/test/`
+- Dep dirs: `node_modules/` `.venv/` `venv/` `__pycache__/` `.tox/` `dist/` `build/` `target/` `vendor/` `bin/` `obj/`
+- Non-source: `.env`, `*.ipynb` (unless notebook project), `*.html`, `assets/` `public/` `static/` `coverage/` `.nyc_output/`
 - Hidden: `.*/` (git/config dirs)
 - Lock files: `uv.lock` `package-lock.json` `Cargo.lock` `go.sum`
-- Generated: `*.pyc` `*.min.js`
+- Generated: `*.pyc` `*.min.js` `*.o` `*.so` `*.a` `*.class` `*.jar` `*.war` `*.dll` `*.exe` `*.map` `CMakeFiles/`
 
 **Domain detection rules**:
 - Single-layer pure test dir (e.g. `tests/` with only `test_*.py` or `*_test.go`) → **don't build domain**, optionally note in `conventions.md` under a `# Testing` section.
@@ -76,6 +81,7 @@ Scan project root to identify domains and concepts.
   - Exception: if a root file is an entrypoint (e.g. `server.py` ASGI entry, `main.go` CLI entry, `app.py` Flask app), mention it in `conventions.md` under a `# Entrypoints` section with one-line purpose. Don't build a dedicated domain for a single root file.
   - If the root has multiple business files (3+), build a `<project>` or `root` domain for them.
 - A directory becomes a domain only if it contains business logic (multiple source files that aren't all tests).
+- **Fallback**: if conventional directory names (`src/` `lib/` etc.) don't match, read manifest for source roots: Java `pom.xml` → `<sourceDirectory>` or default `src/main/java`, Go `go.mod` → module root, Node `package.json` → `main`/`exports`, Rust `Cargo.toml` → `src/`.
 
 **Output** (structured, not just "Phase 1 done"):
 ```
@@ -142,7 +148,7 @@ If project has `CLAUDE.md`, `CONTRIBUTING.md`, or `.editorconfig`, write `.wiki/
 type: Convention
 title: Project Conventions
 description: Coding standards and project-level rules
-resource: <list of source files>
+resource: <primary source file>
 tags: [meta]
 timestamp: <ISO 8601 now>
 ---
