@@ -14,7 +14,9 @@
 
 lint 融进 `scripts/validate-okf.js`，不单独写 `scripts/lint-wiki.js`。SKILL.md 的 lint 块直接调 `node <plugin-dir>/scripts/validate-okf.js .wiki`。
 
-## 检查项（3 项）
+## 检查项
+
+lint 复用 `validate-okf.js` 的 10 项检查（详见模块 09），重点关注其中 3 项 warning：
 
 ### 1. 断链扫描
 

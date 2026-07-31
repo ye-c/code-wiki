@@ -1,7 +1,9 @@
 # 10 - Dogfood 计划
 
-> Status: **TODO**
+> Status: **SUPERSEDED**
 > 依赖: 全部
+>
+> 实际 dogfood 见 aqntis（`~/code/aqntis`）+ fasttts（CLAUDE.md 验证流程）。原 claude-bro 目标已不存在。
 
 ## 目标
 

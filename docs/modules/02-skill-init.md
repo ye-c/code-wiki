@@ -120,15 +120,6 @@ timestamp: <ISO 8601 now，用 Bash date 命令取实际时间>
 ## Notes
 
 <边界条件 / 副作用 / 数据格式 / 状态。兜底段。>
-
-## Key Files
-
-- `<path>` — <从文件首行注释或 export 名推断>
-
-## Dependencies
-
-- Imports from [other concept](/domain/concept.md)
-- External: <package names>
 ```
 
 **明确禁止**（init 不做，标 TODO 占位）：
@@ -178,10 +169,7 @@ sync_commit: <git HEAD>
 
 ### 阶段 5: VALIDATE — OKF 合规校验
 
-调用模块 09 的校验逻辑：
-- 每个 non-reserved `.md` 有 frontmatter ✓
-- 每个 frontmatter 有非空 `type` ✓
-- 断链扫描（警告非错误）
+跑 `node <plugin-dir>/scripts/validate-okf.js .wiki`（详见模块 09，10 项检查）。errors > 0 → 修后重跑。warnings 报告但继续。
 
 ### 阶段 6: Finalize
 
@@ -217,14 +205,6 @@ sync_commit: <git HEAD>
 - **`.wiki/` + `.gitignore *`**（P4）— 默认本地用
 - **init 默认 4 type**（P1）— Domain/Concept/Index/Convention
 - **Task 规划** — 6 阶段用 TaskCreate 创建任务，每阶段标 in_progress → completed
-
-## 辅助脚本（按需）
-
-如果 CC 临场推理不稳，加：
-- `scripts/discover-domains.js` — manifest + 目录扫描
-- `scripts/insert-frontmatter.js` — 批量插 frontmatter
-
-**Ponytail 原则**：先纯 SKILL.md 指令，跑 dogfood 发现不稳才加脚本。
 
 ## 验证
 

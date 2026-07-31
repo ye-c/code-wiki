@@ -53,6 +53,14 @@
    - 非 `/` 开头的 bundle-relative 链接 → INFO
    - OKF §5.1 推荐绝对路径但相对也合法
 
+9. **孤儿页**
+   - 没有被任何其他页链接的 concept → WARN
+   - OKF §5.3 允许但提示可发现性差
+
+10. **stale concept**
+    - concept 的 `resource` 字段指向的代码路径不存在 → WARN
+    - 代码已删/重命名，wiki 未同步
+
 ## 输出格式
 
 ```
@@ -79,7 +87,7 @@ Conformant: YES (0 errors)
 `scripts/validate-okf.js`：
 - 递归扫 `.wiki/**/*.md`
 - 解析 frontmatter（**JSON-flow YAML 子集**，见下）
-- 跑 8 项检查
+- 跑 10 项检查
 - 输出报告
 
 **Frontmatter 子集约束**（P2/Ponytail）：
@@ -114,9 +122,9 @@ code-wiki 生成的 frontmatter 只用 `type`/`title`/`description`/`resource`/`
 
 ## TODO
 
-- [x] 写校验逻辑（8 项检查）
+- [x] 写校验逻辑（10 项检查）
 - [x] 定义输出格式
 - [x] 写 `scripts/validate-okf.js`（含手写 JSON-flow YAML 解析器 + 自检 fixture）
-- [ ] 接入 init 的 VALIDATE 阶段（模块 02）
-- [ ] 接入 lint 操作（模块 04）
-- [ ] dogfood 验证
+- [x] 接入 init 的 VALIDATE 阶段（模块 02）
+- [x] 接入 lint 操作（模块 04）
+- [x] dogfood 验证（aqntis）

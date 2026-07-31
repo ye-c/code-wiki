@@ -111,14 +111,12 @@ For each domain, create `.wiki/<domain>/` directory. For each concept, write `.w
 
 **Get actual timestamp** via Bash: `date -u +"%Y-%m-%dT%H:%M:%S%z"`
 
-**IMPORTANT**: Follow the 3 examples above. Each concept MUST have:
-1. `## Purpose` section (mandatory — validate-okf.js checks this)
-2. Appropriate sections based on module type (see examples)
-3. `## Key Files` section
-4. `## Dependencies` section
-5. `<!-- TODO: ingest -->` placeholder at the end
+**IMPORTANT**: Each concept MUST have:
+1. `## Purpose` section (mandatory)
+2. 0-3 additional sections from the Section Vocabulary table above (based on module type)
+3. `<!-- TODO: ingest -->` placeholder at the end
 
-Omit sections that don't apply to the module type. Do NOT include all 4 sections for every concept.
+Do NOT include all 4 sections for every concept. Omit sections that don't apply.
 
 For each domain, write `.wiki/<domain>/index.md` (domain navigation map, reuses OKF §6 reserved name):
 
@@ -151,15 +149,34 @@ timestamp: <ISO 8601 now>
 
 # Conventions
 
-<extracted key rules, brief>
+<coding standards, naming conventions, unit conventions, architecture red lines>
+
+# Shared Modules
+
+<cross-domain shared facilities: types/utils/event base classes, one line per module with path>
+- `src/<pkg>/types/common.py` — 通用类型
+- `src/<pkg>/utils/concurrent.py` — ProcessExecutor 多进程并发
+
+# Entrypoints
+
+<root-level entrypoints, one line each. Don't repeat modules that already have a concept page>
+
+# Edge Cases
+
+<!-- TODO: ingest -->
 ```
+
+**conventions.md boundaries**:
+- `# Conventions`: rules and standards only. NOT module inventories.
+- `# Shared Modules`: cross-domain shared facilities (types/utils/events). Implementation details, NOT business logic. Don't build a dedicated domain for these — LLM reads source via `resource` path.
+- `# Entrypoints`: root-level entrypoints only. If a module already has its own concept page (e.g. `cli/entry.md`), do NOT repeat it here.
+- `# Edge Cases`: project-level edge cases. Filled by `ingest`, not init.
 
 **Rules**:
 - Use `Write` tool for each file
 - **Write files BEFORE announcing phase complete** — no "Phase 3 done" then write files
 - Infer title from: export names, class names, directory name (in that priority)
 - Infer description from: file header comment, module docstring, first meaningful line
-- Dependencies: scan imports, group into internal (wiki cross-link) and external (package name)
 
 ### Phase 4: INDEX
 
@@ -276,13 +293,11 @@ Create 3 tasks: DETECT / REGENERATE / VALIDATE.
 4. For each affected concept file:
    - Re-read the source files it covers (from `resource` field).
    - Update frontmatter `timestamp` to today (ISO 8601).
-   - **Regenerate Section Vocabulary 4 sections** (per P2 selection table):
+   - **Regenerate Section Vocabulary 4 sections** (per selection table):
      - `## Purpose` — business purpose (update if code semantics changed)
      - `## Usage` — how to use (update if API changed)
      - `## Relationships` — connections (update if dependencies changed)
      - `## Notes` — edge conditions (update if code boundaries changed)
-   - Regenerate `## Key Files` section: list current source files with one-line purpose each.
-   - Regenerate `## Dependencies` section: scan imports, group into internal (wiki cross-link) and external (package name).
    - **Do NOT modify** any freeform sections (Gotchas / ADR / user-written content, including content after `<!-- TODO: ingest -->` placeholders). Keep them as-is.
 5. For unmapped files: do not create new concepts. Record them for the log entry.
 
@@ -292,15 +307,16 @@ Create 3 tasks: DETECT / REGENERATE / VALIDATE.
 2. Update `.wiki/index.md` frontmatter: set `sync_commit` to current HEAD short hash, update `generated_at` to now.
 3. Append to `.wiki/log.md` (create `## <today>` heading if not present):
    ```
-   * **update**: Synced N concepts (<names>). Unmapped: M files (<names including filenames>). sync_commit=`<hash>`.
+   * **update**: Synced N concepts (<names>). Unmapped: M files (<names including filenames>). Stale: K concepts (<names>). sync_commit=`<hash>`.
    ```
-   **Important**: include actual changed file names in the log entry for traceability. Ensure the file ends with a trailing newline.
+   **Important**: include actual changed file names in the log entry for traceability. Extract stale concept names from validator output (warnings with `stale resource`). Ensure the file ends with a trailing newline.
 4. Output:
    ```
    update 完成
    - 检测 N 个变更文件
    - 更新 M 个 concept: <list>
    - K 个未映射文件: <list>
+   - J 个 stale concept: <list>（resource 路径不存在，请手动复查）
    - sync_commit → <hash>
    ```
 

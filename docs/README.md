@@ -34,7 +34,7 @@
 | 07 | hook: PostToolUse | [07-hook-post-tool-use.md](modules/07-hook-post-tool-use.md) | WONTFIX | 01 |
 | 08 | CLAUDE.md 注入 | [08-claude-md-protocol.md](modules/08-claude-md-protocol.md) | DONE | 02 |
 | 09 | OKF 合规校验 | [09-okf-conformance.md](modules/09-okf-conformance.md) | DONE | 02 |
-| 10 | dogfood | [10-dogfood.md](modules/10-dogfood.md) | TODO | 全部 |
+| 10 | dogfood | [10-dogfood.md](modules/10-dogfood.md) | SUPERSEDED | 全部 |
 
 ## MVP 范围
 

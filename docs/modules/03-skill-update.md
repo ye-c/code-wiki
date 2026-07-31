@@ -44,8 +44,6 @@ update 是多阶段长链任务。开始前必须用 `TaskCreate` 创建 3 个�
      - `## Usage` — 怎么用（如果 API 变了，更新）
      - `## Relationships` — 连接关系（如果依赖变了，更新）
      - `## Notes` — 边界条件（如果代码边界变了，更新）
-   - 重生成 `# Key Files` 段：列当前源文件 + 一句话用途。
-   - 重生成 `# Dependencies` 段：扫 imports，分 internal（wiki cross-link）和 external（package name）。
    - **不动 freeform 段**（Gotchas / ADR / 用户手填内容，包括 `<!-- TODO: ingest -->` 占位后的内容）。
 5. unmapped 文件不建新 concept，记到 log。
 6. **stale concept 检测**：扫所有 concept 的 `resource` 字段，如果路径在硬盘上不存在（代码已删/重命名），记到 log 为 stale。**不自动删 concept**（删不可逆，让用户手动）。输出提示用户复查。
@@ -76,7 +74,7 @@ update 是多阶段长链任务。开始前必须用 `TaskCreate` 创建 3 个�
 - **drift 自然报**（P10）— update Phase 1 跑 git diff 时自然发现 drift 并报告，零 hook，零 LLM 主动性依赖。
 - **stale concept 不自动删**（P10）— 删不可逆，记 log 提示用户手动复查。
 - **unmapped 不建新 concept** — 避免自动膨胀，新 concept 由用户显式 ingest 或下次 init。
-- **不拓扑排序** — Dependencies 段扫的是源码 imports，不是其他 wiki 页。A 依赖 B 且 B 变，只有 A 的 imports 变了 A 的 Dependencies 才变 — 而 imports 变了意味着 A 的源码变了，A 已在变更集里，直接重生成。无需"先 B 后 A"顺序。
+- **不拓扑排序** — Relationships 段的跨 concept 链接由 LLM 重读源码生成，不是扫其他 wiki 页。A 依赖 B 且 B 变，只有 A 的源码 imports 变了 A 才需重生成 — 而 imports 变了意味着 A 的源码变了，A 已在变更集里。无需"先 B 后 A"顺序。
 
 ## v0.2 考虑（不实现）
 
