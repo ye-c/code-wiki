@@ -305,6 +305,23 @@ Create 3 tasks: DETECT / REGENERATE / VALIDATE.
      - `## Relationships` — connections (update if dependencies changed)
      - `## Notes` — edge conditions (update if code boundaries changed)
    - **Do NOT modify** any freeform sections (Gotchas / ADR / user-written content, including content after `<!-- TODO: ingest -->` placeholders). Keep them as-is.
+   - **Contradiction detection**: if docstring/comment/README claims X but code behavior says Y, write to `.wiki/unknowns.md` (type Concept). Preserve both claims, do not silently pick one. Format:
+     ```markdown
+     ---
+     type: Concept
+     title: Unknowns & Contradictions
+     description: Preserved contradictions and gaps
+     tags: [meta]
+     timestamp: <ISO 8601 now>
+     ---
+
+     # <topic>
+
+     - **docstring says**: X
+     - **code says**: Y
+     - **status**: UNRESOLVED
+     ```
+     If file doesn't exist, create it. If it exists, append a new `# <topic>` section.
 5. For unmapped files: do not create new concepts. Record them for the log entry.
 
 ### Phase 3: VALIDATE
@@ -334,10 +351,11 @@ Common warnings and suggestions:
 - `broken link → /x/y.md` — target missing. Either write the page or fix the path.
 - `orphan page` — no inbound links. Add a link from index.md or a related concept.
 - `stale resource 'x/'` — code path deleted. Update `resource` field or delete the concept.
+- `contradiction detected` — README/docstring conflicts with code behavior, or two source files contradict each other. Write to `.wiki/unknowns.md` to preserve both claims.
 
 ## ingest
 
-User says "归档这个" / "ingest this" / `/code-wiki ingest [type] [name]`.
+User says "归档这个" / "ingest this" / `/code-wiki-ingest [type] [name]`.
 
 Create 6 tasks: Read / Classify / Check Placeholder / Generate / Place / Update.
 
@@ -359,7 +377,7 @@ Match content against these rules in order:
 | Edge case handling / "特殊情况" | append to existing Convention page's `# Edge Cases` section |
 | None match | do not archive, tell user "内容不适合归档" |
 
-If type unclear or multiple match: list candidates, let user pick. User can also force type via `/code-wiki ingest Flow <name>`.
+If type unclear or multiple match: list candidates, let user pick. User can also force type via `/code-wiki-ingest Flow <name>`.
 
 ### 3. Check for matching `<!-- TODO: ingest -->` placeholder
 

@@ -45,19 +45,19 @@ code-wiki 是 Claude Code plugin，为任意项目生成 OKF v0.1 合规代码�
 
 ## 验证流程
 
-fixture 项目：`~/code/fasttts`（Python TTS 服务，18 .py 文件，3 域候选：tts/utils/tests，无 CLAUDE.md — 测"无 CLAUDE.md"注入分支）
+fixture 项目：`~/code/project_fastrtc`，注意 Bash 必须执行 `source` 后，才能运行 `cc` 命令。
 
 ```bash
-source $HOME/.zshrc 2>/dev/null; cd $HOME/code/fasttts && \
-  cc --plugin-dir $HOME/code/code-wiki -p '/code-wiki init' < /dev/null && \
+source $HOME/.zshrc 2>/dev/null; cd $HOME/code/project_fastrtc && \
+  cc --plugin-dir $HOME/code/code-wiki -p '/code-wiki:init' < /dev/null && \
   node $HOME/code/code-wiki/scripts/validate-okf.js .wiki && \
   grep -q '## 🤖 Code Wiki Retrieval Protocol' CLAUDE.md
 ```
 
 ```bash
-source $HOME/.zshrc 2>/dev/null; cd $HOME/code/fasttts && \
+source $HOME/.zshrc 2>/dev/null; cd $HOME/code/project_fastrtc && \
   echo "# drift test" > drift_probe.py && \
-  cc --plugin-dir $HOME/code/code-wiki -p '/code-wiki update' < /dev/null && \
+  cc --plugin-dir $HOME/code/code-wiki -p '/code-wiki:update' < /dev/null && \
   node $HOME/code/code-wiki/scripts/validate-okf.js .wiki && \
   grep -q "drift_probe" .wiki/log.md
 ```

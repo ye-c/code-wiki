@@ -27,10 +27,10 @@ ln -s /path/to/code-wiki ~/.claude/plugins/local/code-wiki
 ## 使用
 
 ```
-/code-wiki init     # 生成初始 wiki
-/code-wiki update   # git diff 驱动增量更新
-/code-wiki lint     # 健康检查
-/code-wiki ingest   # 归档对话产物
+/code-wiki:init     # 生成初始 wiki
+/code-wiki:update   # git diff 驱动增量更新
+/code-wiki:lint     # 健康检查
+/code-wiki:ingest   # 归档对话产物
 ```
 
 ## 文档
