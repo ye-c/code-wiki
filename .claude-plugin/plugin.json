@@ -1,6 +1,6 @@
 {
   "name": "code-wiki",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Generate and maintain OKF-compliant code navigation wiki for any project.",
   "author": {
     "name": "yec"

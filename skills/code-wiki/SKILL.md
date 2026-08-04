@@ -352,7 +352,7 @@ Common warnings and suggestions:
 - `broken link → /x/y.md` — target missing. Either write the page or fix the path.
 - `orphan page` — no inbound links. Add a link from index.md or a related concept.
 - `stale resource 'x/'` — code path deleted. Update `resource` field or delete the concept.
-- `contradiction detected` — README/docstring conflicts with code behavior, or two source files contradict each other. Write to `.wiki/unknowns.md` to preserve both claims.
+- `contradiction detected` — README/docstring conflicts with code behavior, or two source files contradict each other. Run `update` to preserve both claims in `.wiki/unknowns.md`.
 
 ## ingest
 
