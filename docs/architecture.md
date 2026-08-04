@@ -80,8 +80,11 @@ code-wiki/                        # 本 plugin 仓库
 ├── skills/
 │   └── code-wiki/
 │       └── SKILL.md              # skill 指令（init/update/lint/ingest）
-├── commands/
-│   └── code-wiki.toml            # /code-wiki 命令定义
+├── commands/                     # 4 个 slash 命令（init/update/lint/ingest）
+│   ├── init.md
+│   ├── update.md
+│   ├── lint.md
+│   └── ingest.md
 ├── scripts/                      # 辅助脚本（validate-okf.js）
 ├── docs/                         # 开发文档
 └── README.md
@@ -108,13 +111,11 @@ user-project/
 ### init 流程
 
 ```
-用户: /code-wiki init
+用户: /code-wiki:init
   ↓
 DISCOVER  — 扫描 manifest + 目录结构，识别域边界
   ↓
-PROPOSE   — 生成域划分草案（不写文件），强制暂停等用户确认
-  ↓
-[用户确认/调整]
+PROPOSE   — 生成域划分草案（不写文件），立即继续，不暂停
   ↓
 AUTHOR    — 为每个域 + concept 生成 .md（薄 body）
   ↓
@@ -134,7 +135,7 @@ VALIDATE  — OKF 合规校验 + 断链扫描
 ### update 流程
 
 ```
-用户: /code-wiki update
+用户: /code-wiki:update
   ↓
 Phase 1 DETECT: git diff sync_commit..HEAD --name-only → 变更代码文件
   ↓
@@ -158,7 +159,7 @@ Phase 3 VALIDATE: 跑 validate-okf.js
 ### lint 流程
 
 ```
-用户: /code-wiki lint
+用户: /code-wiki:lint
   ↓
 扫描断链 / 孤儿页 / stale concept / sync_commit drift / 缺失页 / type 合规
   ↓
@@ -172,7 +173,7 @@ Phase 3 VALIDATE: 跑 validate-okf.js
 ```
 用户对话产生有价值内容
   ↓
-用户: "归档这个" 或 /code-wiki ingest
+用户: "归档这个" 或 /code-wiki:ingest
   ↓
 读最近 assistant 回复
   ↓

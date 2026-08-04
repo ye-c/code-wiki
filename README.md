@@ -37,12 +37,11 @@ ln -s /path/to/code-wiki ~/.claude/plugins/local/code-wiki
 
 完整开发文档见 [docs/](docs/)：
 - [architecture.md](docs/architecture.md) — 整体架构
-- [decisions.md](docs/decisions.md) — P1-P9 决策记录
-- [modules/](docs/modules/) — 10 个模块的实现文档
+- [decisions.md](docs/decisions.md) — P1-P10 决策记录
 
 ## 状态
 
-v0.3.0。MVP 范围：init + update + lint + ingest + CLAUDE.md 注入 + OKF 校验。
+v0.5.0。MVP 范围：init + update + lint + ingest + CLAUDE.md 注入 + OKF 校验。
 
 ### 核心特性
 
