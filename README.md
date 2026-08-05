@@ -15,7 +15,7 @@ Claude Code plugin。为任意代码项目生成并维护 OKF v0.1 合规的代�
 
 ```bash
 claude plugin marketplace add ye-c/plugins
-claude plugin install code-wiki@ye-c
+claude plugin install code-wiki@ye-c-plugins
 ```
 
 本地开发：`claude plugin marketplace add /absolute/path/to/code-wiki`，再同上 install。
