@@ -2,4 +2,4 @@
 description: Validate wiki OKF conformance (read-only)
 argument-hint: ""
 ---
-Run code-wiki lint (SKILL.md lint). See skill code-wiki.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/code-wiki/SKILL.md` and follow its `## lint` section.
