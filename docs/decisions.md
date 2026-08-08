@@ -185,14 +185,14 @@ init 默认只用 4 个（Domain/Concept/Index/Convention），其余 3 个（Fl
 
 **关键设计**：
 1. **无 flag**：不判断项目大小，统一并行。小项目 1-3 个 subagent，spawn 成本秒级，可接受。判断逻辑甩给用户不合理（用户不知道项目多大要并行）。
-2. **超大域按子目录切子域**：阈值 >200 files 或 >50k lines。递归切直到每（子）域在阈值内。主线程 PROPOSE 阶段就切好，不等 subagent 自己爆。
+2. **超大域按子目录切子域**：阈值 >200 files 或 >50k lines。递归切直到每（子）域在阈值内。主线程 PROPOSE 阶段就切好，不等 subagent 自己爆。父域根直接文件（不在任何子目录）由父域自己的 task 认领；父域无根文件则不建父域 task。
 3. **subagent prompt 自包含**：subagent 看不到主对话和 SKILL.md，prompt 必须带域路径、concept 列表、AUTHOR 规则、段词表、frontmatter 模板、domain index 模板。
 4. **subagent 直接 Write 到磁盘**：不返回内容给主线程，避免主线程 context 被撑爆（这本来就是并行的初衷）。
 5. **TaskCreate 强制并行**：PROPOSE 阶段每（子）域建一个 task，Phase 3 每 task 派一个 subagent。不建 task = 无法并行 = INDEX 阶段发现 domain index 缺失 = 报错。流程自强制，不靠 LLM 自觉。
 6. **codegraph 不硬编码**：subagent prompt 提"有 code intelligence MCP 工具优先用"，但不强制。装了 codegraph 的项目 subagent 大概率主动用，没装退回 grep，graceful degradation 不破坏零依赖原则。
 
 **不做的事**：
-- 无 retry 逻辑（subagent 挂了 INDEX 阶段发现 domain index 缺失，报错让用户重跑那个域）
+- 无自动续跑/retry。恢复只覆盖硬失败：INDEX 阶段发现 domain index 缺失时记 log，用户事后要求重生成该域，主线程重扫该域源码重建 concept list，用 subagent prompt 模板重派单个 Agent（操作指令在 SKILL.md AUTHOR 段）。软失败（concept 薄/漏）validator 抓不到（不知道应该有哪些 concept），靠 lint + 用户复查，不承诺可恢复。
 - 无 `--parallel` flag（统一并行，不判断）
 - 无 subagent 间依赖管理（concept 跨域引用靠 codegraph 或 grep，不靠 subagent 间通信）
 

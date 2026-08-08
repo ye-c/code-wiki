@@ -13,7 +13,7 @@ Route by argument: `init` / `update` / `lint` / `ingest`. Default = `init`.
 
 All code-wiki operations are multi-phase long-chain tasks. Before starting, use `TaskCreate` to create tasks for each phase. Mark each `in_progress` when starting, `completed` when done. This keeps you and the user tracking progress and prevents phase skipping.
 
-For `init`, AUTHOR is parallel: create one task per (sub)domain, spawn one subagent per task via the `Agent` tool. Do NOT run AUTHOR serially in the main thread — it will overflow the context window on any non-trivial project.
+For `init`, the phases run sequentially (DISCOVER → PROPOSE → AUTHOR → INDEX → VALIDATE → Finalize), but the AUTHOR phase is parallel: create one task per (sub)domain in PROPOSE, spawn one subagent per task via the `Agent` tool in AUTHOR. Do NOT run AUTHOR serially in the main thread — it will overflow the context window on any non-trivial project.
 
 ## Concept Body Sections
 
@@ -118,6 +118,8 @@ A domain is **oversized** if it exceeds either threshold:
 
 For each oversized domain, split by its top-level subdirectories. Each subdirectory with business logic becomes a subdomain. Keep splitting recursively until every (sub)domain is under both thresholds. If a single subdirectory still exceeds thresholds (rare), split by its own subdirectories; if it has none, keep it as-is (the subagent will read what it can and note the remainder).
 
+If the parent domain has source files directly at its root (not in any subdirectory), the parent domain keeps its own task covering only those root files. If the parent has no root files, no parent task is created — only subdomain tasks.
+
 Name subdomains as `<domain>/<subdir>` (e.g. `utils/bash`, `components/permissions`). The `.wiki/` directory mirrors this: `.wiki/utils/bash/`.
 
 **Output**:
@@ -138,8 +140,17 @@ Proposed concepts:
   - <domain>/<subdir>/<concept> ← <source path>
   ...
 
+### Domain: <name> (root files only — parent of <name>/<subdir> subdomains)
+Evidence:
+  - <parent had source files directly at its root>
+Proposed concepts:
+  - <domain>/<concept> ← <source path at domain root>
+  ...
+
 继续生成 wiki...
 ```
+
+When a domain is split and has root files, the parent domain's own task covers only those root files (its concepts' `resource` fields point at source files directly under `<domain>/`, not any subdirectory). If the parent has no root files, omit the parent entry entirely — only subdomain entries appear.
 
 User can adjust domain partition after init by re-running or editing `.wiki/` directly.
 
@@ -186,6 +197,7 @@ Each concept file MUST have:
 4. `<!-- TODO: ingest -->` placeholder at the end of the file (after all sections).
 
 ## Section vocabulary
+<!-- 同步自 SKILL.md "Concept Body Sections" 段。改正正文必同步此处（靠纪律，无自动机制）。 -->
 | Module type | Sections |
 |-------------|----------|
 | Strategy / Service / Business logic | Purpose + Usage + Relationships |
@@ -235,7 +247,7 @@ Report back: list of concept files written, and the domain index file. One line 
 ```
 
 **Main thread after all subagents return**:
-- Verify each `.wiki/<domain>/index.md` exists. If a subagent failed to produce its domain index, note it for the log — do not block init.
+- Verify each `.wiki/<domain>/index.md` exists. If a subagent failed to produce its domain index, note it for the log — do not block init. **If the user later asks to regenerate a specific domain, re-derive the concept list by scanning that domain's source files (same as DISCOVER/PROPOSE would do for that domain), then re-dispatch a single Agent using the subagent prompt template above (fill in that domain's placeholders).**
 - Write `.wiki/conventions.md` in the main thread (it spans the whole project, not a single domain). Use the same template and boundaries as below.
 
 **conventions.md** (main thread writes this, not a subagent):
