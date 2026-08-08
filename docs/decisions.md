@@ -176,3 +176,29 @@ init 默认只用 4 个（Domain/Concept/Index/Convention），其余 3 个（Fl
 - Boy Scout Rule 是 bonus，不是 load-bearing — 核心流程不依赖 LLM 主动性
 - 机械操作（drift 检测、lint 检查）脚本化或 git 命令化，不靠 LLM 主动性
 - 语义操作（域划分、分类、生成 markdown）LLM 化，但给明确规则降低模型能力要求
+
+## P11: init AUTHOR 阶段原生并行（subagent per domain）
+
+**背景**：串行 init 在大项目（>10 万行）上 AUTHOR 阶段 context 必爆。DISCOVER 扫目录轻量，但 AUTHOR 要为每个 concept 读源码推断 Purpose/Usage/Relationships，累计输入 token 远超单窗口。实测 claude-bro（103 万行）串行 init 不可行。
+
+**决策**：AUTHOR 阶段改为原生并行——每（子）域一个 subagent，Agent tool 单消息多调用并行。主线程只做 DISCOVER/PROPOSE/INDEX/VALIDATE/Finalize，不读源码。
+
+**关键设计**：
+1. **无 flag**：不判断项目大小，统一并行。小项目 1-3 个 subagent，spawn 成本秒级，可接受。判断逻辑甩给用户不合理（用户不知道项目多大要并行）。
+2. **超大域按子目录切子域**：阈值 >200 files 或 >50k lines。递归切直到每（子）域在阈值内。主线程 PROPOSE 阶段就切好，不等 subagent 自己爆。
+3. **subagent prompt 自包含**：subagent 看不到主对话和 SKILL.md，prompt 必须带域路径、concept 列表、AUTHOR 规则、段词表、frontmatter 模板、domain index 模板。
+4. **subagent 直接 Write 到磁盘**：不返回内容给主线程，避免主线程 context 被撑爆（这本来就是并行的初衷）。
+5. **TaskCreate 强制并行**：PROPOSE 阶段每（子）域建一个 task，Phase 3 每 task 派一个 subagent。不建 task = 无法并行 = INDEX 阶段发现 domain index 缺失 = 报错。流程自强制，不靠 LLM 自觉。
+6. **codegraph 不硬编码**：subagent prompt 提"有 code intelligence MCP 工具优先用"，但不强制。装了 codegraph 的项目 subagent 大概率主动用，没装退回 grep，graceful degradation 不破坏零依赖原则。
+
+**不做的事**：
+- 无 retry 逻辑（subagent 挂了 INDEX 阶段发现 domain index 缺失，报错让用户重跑那个域）
+- 无 `--parallel` flag（统一并行，不判断）
+- 无 subagent 间依赖管理（concept 跨域引用靠 codegraph 或 grep，不靠 subagent 间通信）
+
+**理由**：
+- context 隔离是 subagent 核心价值——每个 agent 只装一个域的源码，主线程只汇总
+- Agent tool 是 CC 原生能力，不引入新依赖，不破坏"零新增依赖"原则（P0）
+- 超大域切分是唯一真设计决策，其余是实现细节
+- update 不需要并行（git diff 只读变更文件，增量语义决定不爆）
+- 串行 init 在小项目也能跑，但统一并行消除"何时该并行"的判断负担

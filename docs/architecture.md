@@ -50,8 +50,8 @@ AI 编码助手在大型项目里频繁扫描代码、浪费上下文、消耗 t
 
 | 操作 | 触发 | 干什么 | 对齐 |
 |------|------|--------|------|
-| **init** | 用户显式 | 初始生成 wiki（5 阶段） | OpenWiki init |
-| **update** | 手动 + hook 提示 | git diff + 链接传播 + 级联修正 | OpenWiki update |
+| **init** | 用户显式 | 初始生成 wiki（6 阶段，AUTHOR 并行） | OpenWiki init |
+| **update** | 用户主动 | git diff + 链接传播 + 级联修正 | OpenWiki update |
 | **lint** | 用户显式 | 健康检查（断链/孤儿页/stale） | Karpathy lint |
 | **ingest** | 用户显式 | 对话产物归档成新页 | Karpathy ingest |
 
@@ -113,13 +113,13 @@ user-project/
 ```
 用户: /code-wiki:init
   ↓
-DISCOVER  — 扫描 manifest + 目录结构，识别域边界
+DISCOVER  — 扫描 manifest + 目录结构 + 量域大小（文件数/行数），识别域边界
   ↓
-PROPOSE   — 生成域划分草案（不写文件），立即继续，不暂停
+PROPOSE   — 生成域划分草案，超大域按子目录切子域，每（子）域建一个 task
   ↓
-AUTHOR    — 为每个域 + concept 生成 .md（薄 body）
-  ↓
-INDEX     — 生成 index.md（OKF §6 + frontmatter）
+AUTHOR    — 每（子）域派一个 subagent（Agent tool，并行），subagent 读源码 + 写该域所有 concept + domain index
+  ↓           subagent context 隔离，主线程不读源码
+INDEX     — 主线程读所有 domain index，合并根 index.md（OKF §6 + frontmatter）
   ↓
 VALIDATE  — OKF 合规校验 + 断链扫描
   ↓
@@ -131,6 +131,8 @@ VALIDATE  — OKF 合规校验 + 断链扫描
   ↓
 [输出: 如何切换共享模式]
 ```
+
+**并行 init**（P11 决策）：AUTHOR 阶段每（子）域一个 subagent，单消息多 Agent tool 调用并行。主线程只做 DISCOVER/PROPOSE/INDEX/VALIDATE/Finalize，不读源码。超大域（>200 files 或 >50k lines）按子目录递归切子域，每子域一个 subagent。
 
 ### update 流程
 
