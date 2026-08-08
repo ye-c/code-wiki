@@ -13,6 +13,8 @@ Route by argument: `init` / `update` / `lint` / `ingest`. Default = `init`.
 
 All code-wiki operations are multi-phase long-chain tasks. Before starting, use `TaskCreate` to create tasks for each phase. Mark each `in_progress` when starting, `completed` when done. This keeps you and the user tracking progress and prevents phase skipping.
 
+For `init`, the phases run sequentially (DISCOVER → PROPOSE → AUTHOR → INDEX → VALIDATE → Finalize), but the AUTHOR phase is parallel: create one task per (sub)domain in PROPOSE, spawn one subagent per task via the `Agent` tool in AUTHOR. Do NOT run AUTHOR serially in the main thread — it will overflow the context window on any non-trivial project.
+
 ## Concept Body Sections
 
 Every concept **MUST** have a `## Purpose` section. Select 0-3 additional sections based on module type:
@@ -44,11 +46,11 @@ Every concept **MUST** have a `## Purpose` section. Select 0-3 additional sectio
 
 Generate OKF v0.1 compliant code navigation wiki for the current project.
 
-Create 6 tasks: DISCOVER / PROPOSE / AUTHOR / INDEX / VALIDATE / Finalize.
+Create 6 phase tasks: DISCOVER / PROPOSE / AUTHOR / INDEX / VALIDATE / Finalize. In PROPOSE, create one additional task per (sub)domain for the parallel AUTHOR — each becomes one subagent.
 
 ### Phase 1: DISCOVER
 
-Scan project root to identify domains and concepts.
+Scan project root to identify domains, concepts, and **measure each domain's size**. Size drives the parallel split in PROPOSE.
 
 **Pre-flight check**:
 If `.wiki/` exists:
@@ -66,9 +68,19 @@ If `.wiki/` exists:
 - `src/` `lib/` `app/` `cmd/` `internal/` `pkg/` `core/`
 - Subdirectories with multiple source files → candidate domain
 
+**Size measurement** (mandatory for every candidate domain):
+For each candidate domain, run via Bash (adapt globs to the project's source extensions — `.ts`/`.tsx`, `.py`, `.go`, `.rs`, `.java`, etc.):
+```bash
+# file count
+fd -g '*.ts' <domain> | wc -l; fd -g '*.tsx' <domain> | wc -l
+# line count (sum, excluding wc's "total" line)
+(fd -g '*.ts' <domain>; fd -g '*.tsx' <domain>) | sort -u | xargs wc -l | awk 'NF==2 {s+=$1} END{print s}'
+```
+Record both file count and line count per domain. These numbers decide subdomain splitting in PROPOSE.
+
 **Business context**:
 - Read README (if exists) to extract business summary
-- Read each candidate domain's entry file to infer business purpose
+- Read each candidate domain's entry file to infer business purpose — keep this light, the subagent will read deeply in AUTHOR
 
 **Always exclude from domain detection** (don't scan, don't build concepts):
 - Test dirs: `tests/` `test/` `__tests__/` `spec/` `*_test/` `test_*` `src/test/`
@@ -91,61 +103,154 @@ If `.wiki/` exists:
 ## DISCOVER Output
 - README: yes/no (summary: ...)
 - Candidate domains:
-  - <domain>: N files, entry <entry>, purpose: <one sentence>
+  - <domain>: N files, L lines, entry <entry>, purpose: <one sentence>
   - ...
 ```
 
 ### Phase 2: PROPOSE
 
-Output domain partition draft, then **immediately continue to Phase 3 AUTHOR** — do NOT stop or wait for confirmation.
+Output domain partition draft, **split oversized domains into subdomains**, create one TaskCreate task per (sub)domain, then **immediately continue to Phase 3 AUTHOR** — do NOT stop or wait for confirmation.
 
+**Oversized domain splitting**:
+A domain is **oversized** if it exceeds either threshold:
+- > 200 source files, OR
+- > 50,000 lines
+
+For each oversized domain, split by its top-level subdirectories. Each subdirectory with business logic becomes a subdomain. Keep splitting recursively until every (sub)domain is under both thresholds. If a single subdirectory still exceeds thresholds (rare), split by its own subdirectories; if it has none, keep it as-is (the subagent will read what it can and note the remainder).
+
+If the parent domain has source files directly at its root (not in any subdirectory), the parent domain keeps its own task covering only those root files. If the parent has no root files, no parent task is created — only subdomain tasks.
+
+Name subdomains as `<domain>/<subdir>` (e.g. `utils/bash`, `components/permissions`). The `.wiki/` directory mirrors this: `.wiki/utils/bash/`.
+
+**Output**:
 ```
 ## 候选域划分
 
-### Domain: <name>
+### Domain: <name> (N files, L lines)
 Evidence:
   - <manifest/dir evidence>
 Proposed concepts:
   - <domain>/<concept> ← <source path>
   ...
 
+### Domain: <name>/<subdir> (subdomain, split from <name> — oversized)
+Evidence:
+  - <why split: exceeded threshold>
+Proposed concepts:
+  - <domain>/<subdir>/<concept> ← <source path>
+  ...
+
+### Domain: <name> (root files only — parent of <name>/<subdir> subdomains)
+Evidence:
+  - <parent had source files directly at its root>
+Proposed concepts:
+  - <domain>/<concept> ← <source path at domain root>
+  ...
+
 继续生成 wiki...
 ```
 
+When a domain is split and has root files, the parent domain's own task covers only those root files (its concepts' `resource` fields point at source files directly under `<domain>/`, not any subdirectory). If the parent has no root files, omit the parent entry entirely — only subdomain entries appear.
+
 User can adjust domain partition after init by re-running or editing `.wiki/` directly.
 
-### Phase 3: AUTHOR
+**TaskCreate enforcement**: Create one task per (sub)domain in the task list. Subject: `AUTHOR: <domain>`. These tasks are the parallel units — Phase 3 spawns one subagent per task. Do NOT skip this step: without tasks, AUTHOR cannot parallelize and will fall back to serial main-thread generation, which overflows the context window on non-trivial projects.
 
-For each domain, create `.wiki/<domain>/` directory. For each concept, write `.wiki/<domain>/<concept>.md`:
+### Phase 3: AUTHOR (parallel via subagents)
 
-**Get actual timestamp** via Bash: `date -u +"%Y-%m-%dT%H:%M:%S%z"`
+For each (sub)domain task created in PROPOSE, spawn one subagent via the `Agent` tool. All subagents run in parallel — issue all `Agent` tool calls in a **single message** (multiple tool uses in one response). Do NOT run them sequentially.
 
-**IMPORTANT**: Each concept MUST have:
-1. `## Purpose` section (mandatory)
-2. 0-3 additional sections from the Section Vocabulary table above (based on module type)
-3. `<!-- TODO: ingest -->` placeholder at the end
+**Before spawning**: create `.wiki/` and each `.wiki/<domain>/` directory (Bash `mkdir -p`).
 
-Do NOT include all 4 sections for every concept. Omit sections that don't apply.
+**Subagent prompt** (self-contained — subagents cannot see this SKILL.md or the main conversation). Pass this verbatim to each subagent, filling in the bracketed placeholders:
 
-For each domain, write `.wiki/<domain>/index.md` (domain navigation map, reuses OKF §6 reserved name):
+```
+You are generating an OKF v0.1 compliant code navigation wiki for one domain of a larger project. You are a subagent with isolated context — you cannot see the main conversation.
 
-```markdown
+## Your assignment
+- Domain: <DOMAIN_NAME>
+- Domain root path: <DOMAIN_ROOT_PATH> (relative to project root)
+- Source extensions in this project: <SOURCE_EXTENSIONS, e.g. .ts/.tsx>
+- Proposed concepts (one per source file or logical group):
+<CONCEPT_LIST>
+  Each line: <concept_slug> ← <source path relative to project root>
+
+## Your task
+For each concept, write `.wiki/<DOMAIN_NAME>/<concept_slug>.md`. Then write `.wiki/<DOMAIN_NAME>/index.md`.
+
+## Timestamp
+Get the actual timestamp via Bash: `date -u +"%Y-%m-%dT%H:%M:%S%z"`. Use the same value for all files you write.
+
+## Concept file rules
+Each concept file MUST have:
+1. YAML frontmatter:
+   ---
+   type: Concept
+   title: <inferred from export names > class names > directory name, in that priority>
+   description: <inferred from file header comment / module docstring / first meaningful line>
+   resource: <source path relative to project root — the file or directory this concept covers>
+   tags: [<DOMAIN_NAME>]
+   timestamp: <ISO 8601 from Bash>
+   ---
+2. `## Purpose` section (mandatory) — one-sentence business purpose. Infer from function names + params + call patterns.
+3. 0-3 additional sections from the table below, based on module type. Do NOT include all 4 for every concept — omit sections that don't apply.
+4. `<!-- TODO: ingest -->` placeholder at the end of the file (after all sections).
+
+## Section vocabulary
+<!-- 同步自 SKILL.md "Concept Body Sections" 段。改正正文必同步此处（靠纪律，无自动机制）。 -->
+| Module type | Sections |
+|-------------|----------|
+| Strategy / Service / Business logic | Purpose + Usage + Relationships |
+| Utility functions / Helpers | Purpose + Usage |
+| Config / Constants | Purpose + Notes |
+| Infrastructure (cache/logger/db) | Purpose + Notes |
+| Entrypoint / Orchestration | Purpose + Relationships |
+
+Section definitions:
+- `## Purpose` — one-sentence business purpose.
+- `## Usage` — how to use, not how built. Key signatures + semantics.
+- `## Relationships` — cross-concept data/control flow, including polymorphic dispatch.
+- `## Notes` — edge conditions / side effects / data formats / state. Catch-all.
+
+Do NOT generate these at init (the `<!-- TODO: ingest -->` placeholder reserves them):
+- Gotchas (requires experience)
+- ADR (requires decision context)
+- Performance (requires measurement)
+
+## Domain index file
+Write `.wiki/<DOMAIN_NAME>/index.md`:
 ---
 type: Domain
-title: <domain name>
-description: <one sentence summary>
-resource: <domain root path>
-tags: [<domain>]
-timestamp: <ISO 8601 now>
+title: <DOMAIN_NAME>
+description: <one sentence summary of the domain>
+resource: <DOMAIN_ROOT_PATH>
+tags: [<DOMAIN_NAME>]
+timestamp: <ISO 8601 from Bash>
 ---
 
 # Concepts
 
 - [concept title](concept.md) — description
+
+(List every concept you wrote, one line each. Use the concept's title from its frontmatter, link to the .md filename.)
+
+## Rules
+- Use the `Write` tool for each file. Write files BEFORE reporting completion.
+- Read the source files under <DOMAIN_ROOT_PATH> to infer purpose, usage, relationships, notes. Use `Grep`/`Read` or any available code intelligence tools.
+- If a code intelligence MCP tool (e.g. codegraph) is available, prefer it for finding call relationships and blast radius — it returns verbatim source plus callers in one call.
+- If the domain is too large to read fully, read the entry files and the most connected modules; note in `## Notes` that deeper coverage is pending.
+- Infer title from: export names, class names, directory name (in that priority).
+- Infer description from: file header comment, module docstring, first meaningful line.
+
+## Output
+Report back: list of concept files written, and the domain index file. One line each. Nothing else.
 ```
 
-If project has `CLAUDE.md`, `CONTRIBUTING.md`, or `.editorconfig`, write `.wiki/conventions.md`:
+**Main thread after all subagents return**:
+- Verify each `.wiki/<domain>/index.md` exists. If a subagent failed to produce its domain index, note it for the log — do not block init. **If the user later asks to regenerate a specific domain, re-derive the concept list by scanning that domain's source files (same as DISCOVER/PROPOSE would do for that domain), then re-dispatch a single Agent using the subagent prompt template above (fill in that domain's placeholders).**
+- Write `.wiki/conventions.md` in the main thread (it spans the whole project, not a single domain). Use the same template and boundaries as below.
 
+**conventions.md** (main thread writes this, not a subagent):
 ```markdown
 ---
 type: Convention
@@ -182,15 +287,12 @@ timestamp: <ISO 8601 now>
 - `# Edge Cases`: project-level edge cases. Filled by `ingest`, not init.
 - **Arbitrary `# X` sections allowed**: ingest may append cross-concept meta content (security avoidance / defense guidelines / real examples / project-level rules) as new `# X` sections, named by LLM based on content (e.g. `# Security Notes`, `# Avoidance Guidelines`, `# Real Examples`). init does NOT generate empty sections — create on demand during ingest. All `# X` sections are freeform: update preserves them verbatim (Convention pages have no core sections to regenerate).
 
-**Rules**:
-- Use `Write` tool for each file
-- **Write files BEFORE announcing phase complete** — no "Phase 3 done" then write files
-- Infer title from: export names, class names, directory name (in that priority)
-- Infer description from: file header comment, module docstring, first meaningful line
-
 ### Phase 4: INDEX
 
-Write `.wiki/index.md`:
+The subagents already wrote each `.wiki/<domain>/index.md` in Phase 3. The main thread now merges them into the root `.wiki/index.md`:
+
+1. Read every `.wiki/<domain>/index.md` (subagent output). Extract the concept list from each.
+2. Write `.wiki/index.md`:
 
 ```markdown
 ---
@@ -214,6 +316,8 @@ sync_commit: <git HEAD short hash>
 
 Get project name from manifest (`package.json` name / `pyproject.toml` project.name / directory basename).
 Get git HEAD via `git rev-parse --short HEAD`.
+
+Group subdomains under their parent domain heading (e.g. `## utils` contains links to `utils/bash/concept.md`, `utils/hooks/concept.md`). If a parent domain has no direct concepts (only subdomains), list the subdomain indexes as links instead.
 
 ### Phase 5: VALIDATE
 
